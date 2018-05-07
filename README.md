@@ -1,4 +1,3 @@
-
 # Somatic pipeline
 
 ## Installation
