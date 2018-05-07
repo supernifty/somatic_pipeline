@@ -1,0 +1,9 @@
+
+genome: 'reference/genome.fa'
+
+samples: 
+  S1: ['in/S1_RG_2_R1.fastq.gz', 'in/S1_RG_2_R2.fastq.gz']
+  T1: ['in/T1_RG_3_R1.fastq.gz', 'in/T1_RG_3_R2.fastq.gz']
+
+tumours:
+  T1: 'S1'
