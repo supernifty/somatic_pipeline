@@ -10,18 +10,36 @@
     "align": {
         "n": 4,
         "memory": 8192,
-        "time": "08:00:00"
+        "time": "24:00:00"
     },
 
     "sort": {
         "n": 4,
         "memory": 16384,
-        "time": "12:00:00"
+        "time": "24:00:00"
     },
 
     "strelka": {
         "n": 8,
         "memory": 16384,
-        "time": "12:00:00"
+        "time": "24:00:00"
+    },
+
+    "qc_sequencing_artifacts": {
+        "n": 1,
+        "memory": 16384,
+        "time": "4:00:00"
+    },
+
+    "qc_oxidative_artifacts": {
+        "n": 1,
+        "memory": 16384,
+        "time": "4:00:00"
+    },
+
+    "bias_filter": {
+        "n": 1,
+        "memory": 4096,
+        "time": "24:00:00"
     }
 }
