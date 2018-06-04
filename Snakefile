@@ -30,7 +30,11 @@ rule all:
     expand("out/{sample}.oxo_metrics.txt", sample=config['samples']),
     expand("out/{sample}.artifact_metrics.txt.error_summary_metrics", sample=config['samples']),
     expand("out/{tumour}.strelka.snvs.bias.vcf", tumour=config['tumours']),
-    "out/qc.summary.tsv"
+    expand("out/fastqc/{sample}/completed", sample=config['samples']),
+    expand("out/{sample}.metrics.insertsize", sample=config['samples']),
+    expand("out/{sample}.metrics.alignment", sample=config['samples']),
+    "out/qc.summary.tsv",
+    "out/multiqc.html"
 
 rule qc_summary:
   input:
@@ -41,6 +45,48 @@ rule qc_summary:
     stderr="log/make_summary.stderr"
   shell:
     "python src/make_summary.py --verbose --samples {input} > {output} 2>{log.stderr}"
+
+rule fastqc:
+  input:
+    fastqs=lambda wildcards: config["samples"][wildcards.sample]
+  output:
+    "out/fastqc/{sample}/completed"
+  shell:
+    "module load java/1.8.0_25 && "
+    "mkdir -p {output} && "
+    "tools/FastQC/fastqc --extract --outdir out/fastqc/{wildcards.sample} {input.fastqs} && "
+    "touch {output}"
+
+rule qc_insertsize:
+  input:
+    reference=config["genome"],
+    bam="out/{sample}.sorted.bam"
+  output:
+    "out/{sample}.metrics.insertsize"
+  shell:
+    "module load java/1.8.0_25 && "
+    "java -jar tools/picard-2.8.2.jar CollectAlignmentSummaryMetrics REFERENCE_SEQUENCE={input.reference} INPUT={input.bam} OUTPUT={output}"
+
+rule qc_alignment:
+  input:
+    bam="out/{sample}.sorted.bam"
+  output:
+    "out/{sample}.metrics.alignment"
+  shell:
+    "module load java/1.8.0_25 && "
+    "java -jar tools/picard-2.8.2.jar CollectInsertSizeMetrics INPUT={input.bam} OUTPUT={output} HISTOGRAM_FILE={output}.pdf"
+
+rule multiqc:
+  input:
+    expand("out/fastqc/{sample}/completed", sample=config['samples']),
+    expand("out/{sample}.metrics.alignment", sample=config['samples']),
+    expand("out/{sample}.metrics.insertsize", sample=config['samples']),
+    "out/qc.summary.tsv"
+    
+  output:
+    "out/multiqc.html"
+  shell:
+    "multiqc --force --filename {output} out"
 
 ### alignment ###
 rule align:

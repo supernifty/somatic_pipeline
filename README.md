@@ -26,6 +26,14 @@ wget https://github.com/Illumina/strelka/releases/download/v2.9.2/strelka-2.9.2.
 bunzip2 < strelka-2.9.2.centos6_x86_64.tar.bz2 | tar xvf -
 ```
 
+### fastqc ###
+```
+wget http://www.bioinformatics.babraham.ac.uk/projects/fastqc/fastqc_v0.11.7.zip
+unzip fastqc_v0.11.7.zip
+chmod +x tools/FastQC/fastqc
+```
+
+
 ### DKFZBiasFilter
 git clone https://github.com/supernifty/DKFZBiasFilter.git
 pip install -r requirements.txt

@@ -37,6 +37,30 @@
         "time": "4:00:00"
     },
 
+    "qc_alignment": {
+        "n": 1,
+        "memory": 8192,
+        "time": "4:00:00"
+    },
+
+    "qc_insertsize": {
+        "n": 1,
+        "memory": 16384,
+        "time": "4:00:00"
+    },
+
+    "fastqc": {
+        "n": 1,
+        "memory": 2048,
+        "time": "4:00:00"
+    },
+
+    "multiqc": {
+        "n": 1,
+        "memory": 4096,
+        "time": "4:00:00"
+    },
+
     "bias_filter": {
         "n": 1,
         "memory": 4096,
