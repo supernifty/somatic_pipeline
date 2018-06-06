@@ -33,6 +33,9 @@ rule all:
     expand("out/fastqc/{sample}/completed", sample=config['samples']),
     expand("out/{sample}.metrics.insertsize", sample=config['samples']),
     expand("out/{sample}.metrics.alignment", sample=config['samples']),
+    expand("out/{sample}.metrics.target", sample=config['samples']),
+    expand("out/{tumour}.concordance", tumour=config['tumours']),
+    expand("out/{tumour}.contamination", tumour=config['tumours']),
     "out/qc.summary.tsv",
     "out/multiqc.html"
 
@@ -57,6 +60,36 @@ rule fastqc:
     "tools/FastQC/fastqc --extract --outdir out/fastqc/{wildcards.sample} {input.fastqs} && "
     "touch {output}"
 
+rule make_sequence_dict:
+  input:
+    reference=config["genome"]
+  output:
+    config["genome_dict"]
+  shell:
+    "module load java/1.8.0_25 && "
+    "java -jar tools/picard-2.8.2.jar CreateSequenceDictionary REFERENCE={input.reference} OUTPUT={output}"
+
+rule make_intervals:
+  input:
+    bed=config["regions"],
+    dict=config["genome_dict"]
+  output:
+    "out/regions.intervals"
+  shell:  
+    "module load java/1.8.0_25 && "
+    "java -jar tools/picard-2.8.2.jar BedToIntervalList INPUT={input.bed} OUTPUT={output} SEQUENCE_DICTIONARY={input.dict}"
+
+rule qc_target:
+  input:
+    reference=config["genome"],
+    bam="out/{sample}.sorted.bam",
+    intervals="out/regions.intervals"
+  output:
+    "out/{sample}.metrics.target"
+  shell:
+    "module load java/1.8.0_25 && "
+    "java -jar tools/picard-2.8.2.jar CollectHsMetrics REFERENCE_SEQUENCE={input.reference} INPUT={input.bam} OUTPUT={output} BAIT_INTERVALS={input.intervals} TARGET_INTERVALS={input.intervals}"
+
 rule qc_insertsize:
   input:
     reference=config["genome"],
@@ -76,11 +109,36 @@ rule qc_alignment:
     "module load java/1.8.0_25 && "
     "java -jar tools/picard-2.8.2.jar CollectInsertSizeMetrics INPUT={input.bam} OUTPUT={output} HISTOGRAM_FILE={output}.pdf"
 
+rule qc_conpair:
+  input:
+    reference=config["genome"],
+    reference_dict=config["genome_dict"],
+    bams=tumour_normal_bams
+  output:
+    "out/{tumour}.concordance",
+    "out/{tumour}.contamination"
+  log:
+    stderr="log/{tumour}.conpair.stderr",
+    stdout="log/{tumour}.conpair.stdout"
+  shell:
+    "( "
+    "module load java/1.8.0_25 && "
+    "mkdir -p tmp/conpair_$$ && "
+    "python tools/Conpair/scripts/run_gatk_pileup_for_sample.py --reference {input.reference} --conpair_dir tools/Conpair --gatk tools/GenomeAnalysisTK-3.8-1-0-gf15c1c3ef/GenomeAnalysisTK.jar -B {input.bams[0]} -O tmp/conpair_$$/tumour.pileup && "
+    "python tools/Conpair/scripts/run_gatk_pileup_for_sample.py --reference {input.reference} --conpair_dir tools/Conpair --gatk tools/GenomeAnalysisTK-3.8-1-0-gf15c1c3ef/GenomeAnalysisTK.jar -B {input.bams[1]} -O tmp/conpair_$$/normal.pileup && "
+    "PYTHONPATH=tools/Conpair/modules CONPAIR_DIR=tools/Conpair python tools/Conpair/scripts/verify_concordance.py -T tmp/conpair_$$/tumour.pileup -N tmp/conpair_$$/normal.pileup --outfile {output[0]} --normal_homozygous_markers_only && "
+    "PYTHONPATH=tools/Conpair/modules CONPAIR_DIR=tools/Conpair python tools/Conpair/scripts/estimate_tumor_normal_contamination.py -T tmp/conpair_$$/tumour.pileup -N tmp/conpair_$$/tumour.pileup --outfile {output[1]} && "
+    "rm -r tmp/conpair_$$ "
+    ") 1>{log.stdout} 2>{log.stderr}"
+
 rule multiqc:
   input:
     expand("out/fastqc/{sample}/completed", sample=config['samples']),
     expand("out/{sample}.metrics.alignment", sample=config['samples']),
     expand("out/{sample}.metrics.insertsize", sample=config['samples']),
+    expand("out/{sample}.metrics.target", sample=config['samples']),
+    expand("out/{tumour}.concordance", tumour=config['tumours']),
+    expand("out/{tumour}.contamination", tumour=config['tumours']),
     "out/qc.summary.tsv"
     
   output:

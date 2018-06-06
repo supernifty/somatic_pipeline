@@ -1,5 +1,7 @@
 
 genome: 'reference/genome.fa'
+genome_dict: 'reference/genome.dict'
+regions: 'reference/regions.bed'
 
 samples: 
   S1: ['in/S1_N_RG_2_R1.fastq.gz', 'in/S1_N_RG_2_R2.fastq.gz']

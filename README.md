@@ -33,10 +33,30 @@ unzip fastqc_v0.11.7.zip
 chmod +x tools/FastQC/fastqc
 ```
 
+### GATK 4 ###
+```
+wget https://github.com/broadinstitute/gatk/releases/download/4.0.0.0/gatk-4.0.0.0.zip
+```
+
+### GATK 3.8.1 ###
+```
+wget 'https://software.broadinstitute.org/gatk/download/auth?package=GATK-archive&version=3.8-1-0-gf15c1c3ef'
+tar xvfj GenomeAnalysisTK-3.8-1-0-gf15c1c3ef.tar.bz2 
+```
 
 ### DKFZBiasFilter
 git clone https://github.com/supernifty/DKFZBiasFilter.git
 pip install -r requirements.txt
+
+### Conpair ###
+```
+git clone https://github.com/supernifty/Conpair.git
+```
+
+### verifyBamID ###
+```
+wget https://github.com/statgen/verifyBamID/releases/download/v1.1.3/verifyBamID
+```
 
 ## Configuration
 

@@ -13,6 +13,18 @@
         "time": "24:00:00"
     },
 
+    "make_sequence_dict": {
+        "n": 1,
+        "memory": 8192,
+        "time": "1:00:00"
+    },
+
+    "make_intervals": {
+        "n": 1,
+        "memory": 8192,
+        "time": "1:00:00"
+    },
+
     "sort": {
         "n": 4,
         "memory": 16384,
@@ -31,6 +43,12 @@
         "time": "4:00:00"
     },
 
+    "qc_target": {
+        "n": 1,
+        "memory": 16384,
+        "time": "1:00:00"
+    },
+
     "qc_oxidative_artifacts": {
         "n": 1,
         "memory": 16384,
@@ -41,6 +59,12 @@
         "n": 1,
         "memory": 8192,
         "time": "4:00:00"
+    },
+
+    "qc_conpair": {
+        "n": 1,
+        "memory": 16384,
+        "time": "8:00:00"
     },
 
     "qc_insertsize": {
