@@ -55,7 +55,9 @@ git clone https://github.com/supernifty/Conpair.git
 
 ### verifyBamID ###
 ```
-wget https://github.com/statgen/verifyBamID/releases/download/v1.1.3/verifyBamID
+wget https://github.com/statgen/verifyBamID/releases/download/v1.1.3/verifyBamIDLibStatGen.1.1.3.tgz
+cd tools/verifyBamID_1.1.3
+make
 ```
 
 ## Configuration

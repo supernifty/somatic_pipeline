@@ -17,25 +17,33 @@ def read_group(wildcards):
   lane = fields[2]
   return "@RG\tID:{sample}.{flowcell}.{barcode}.{lane}\tSM:{sample}\tPU:{flowcell}.{barcode}.{lane}\tPL:Illumina".format(flowcell=flowcell, sample=wildcards.sample, lane=lane, barcode=barcode)
 
-def tumour_normal_bams(wildcards):
+def tumour_germline_bams(wildcards):
   tumour_bam = 'out/{}.sorted.bam'.format(wildcards.tumour)
   normal_bam = 'out/{}.sorted.bam'.format(config["tumours"][wildcards.tumour])
   return [tumour_bam, normal_bam]
 
+def germline_samples():
+  samples = set(config['samples'])
+  tumours = set(config['tumours'])
+  return list(samples.difference(tumours))
+
 ### final outputs ###
 rule all:
   input:
-    expand("out/{tumour}.strelka.snvs.vcf.gz", tumour=config['tumours']),
-    expand("out/{tumour}.strelka.indels.vcf.gz", tumour=config['tumours']),
+    expand("out/{tumour}.strelka.somatic.snvs.af.vcf.gz", tumour=config['tumours']),
+    expand("out/{tumour}.strelka.somatic.indels.vcf.gz", tumour=config['tumours']),
+    expand("out/{germline}.strelka.germline.vcf.gz", germline=germline_samples()),
     expand("out/{sample}.oxo_metrics.txt", sample=config['samples']),
     expand("out/{sample}.artifact_metrics.txt.error_summary_metrics", sample=config['samples']),
-    expand("out/{tumour}.strelka.snvs.bias.vcf", tumour=config['tumours']),
+    #expand("out/{tumour}.strelka.somatic.snvs.bias.vcf", tumour=config['tumours']),
     expand("out/fastqc/{sample}/completed", sample=config['samples']),
     expand("out/{sample}.metrics.insertsize", sample=config['samples']),
     expand("out/{sample}.metrics.alignment", sample=config['samples']),
     expand("out/{sample}.metrics.target", sample=config['samples']),
     expand("out/{tumour}.concordance", tumour=config['tumours']),
     expand("out/{tumour}.contamination", tumour=config['tumours']),
+    expand("out/{tumour}.verifybamid.somatic.completed", tumour=config['tumours']),
+    expand("out/{germline}.verifybamid.germline.completed", germline=germline_samples()),
     "out/qc.summary.tsv",
     "out/multiqc.html"
 
@@ -113,7 +121,7 @@ rule qc_conpair:
   input:
     reference=config["genome"],
     reference_dict=config["genome_dict"],
-    bams=tumour_normal_bams
+    bams=tumour_germline_bams
   output:
     "out/{tumour}.concordance",
     "out/{tumour}.contamination"
@@ -127,9 +135,34 @@ rule qc_conpair:
     "python tools/Conpair/scripts/run_gatk_pileup_for_sample.py --reference {input.reference} --conpair_dir tools/Conpair --gatk tools/GenomeAnalysisTK-3.8-1-0-gf15c1c3ef/GenomeAnalysisTK.jar -B {input.bams[0]} -O tmp/conpair_$$/tumour.pileup && "
     "python tools/Conpair/scripts/run_gatk_pileup_for_sample.py --reference {input.reference} --conpair_dir tools/Conpair --gatk tools/GenomeAnalysisTK-3.8-1-0-gf15c1c3ef/GenomeAnalysisTK.jar -B {input.bams[1]} -O tmp/conpair_$$/normal.pileup && "
     "PYTHONPATH=tools/Conpair/modules CONPAIR_DIR=tools/Conpair python tools/Conpair/scripts/verify_concordance.py -T tmp/conpair_$$/tumour.pileup -N tmp/conpair_$$/normal.pileup --outfile {output[0]} --normal_homozygous_markers_only && "
-    "PYTHONPATH=tools/Conpair/modules CONPAIR_DIR=tools/Conpair python tools/Conpair/scripts/estimate_tumor_normal_contamination.py -T tmp/conpair_$$/tumour.pileup -N tmp/conpair_$$/tumour.pileup --outfile {output[1]} && "
+    "PYTHONPATH=tools/Conpair/modules CONPAIR_DIR=tools/Conpair python tools/Conpair/scripts/estimate_tumor_normal_contamination.py -T tmp/conpair_$$/tumour.pileup -N tmp/conpair_$$/normal.pileup --outfile {output[1]} && "
     "rm -r tmp/conpair_$$ "
     ") 1>{log.stdout} 2>{log.stderr}"
+
+rule qc_verifybamid_tumour:
+  input:
+    vcf="out/{tumour}.strelka.somatic.snvs.af.vcf.gz",
+    bam="out/{tumour}.sorted.bam",
+    bai="out/{tumour}.sorted.bai",
+  output:
+    "out/{tumour}.verifybamid.somatic.completed"
+  log:
+    stderr="log/{tumour}.verifybamid.stderr"
+  shell:
+    "tools/verifyBamID_1.1.3/verifyBamID/bin/verifyBamID --vcf {input.vcf} --bam {input.bam} --bai {input.bai} --out out/{wildcards.tumour}.verifybamid --verbose 2>{log.stderr} && touch {output}"
+
+rule qc_verifybamid_germline:
+  input:
+    vcf="out/{germline}.strelka.germline.vcf.gz",
+    bam="out/{germline}.sorted.bam",
+    bai="out/{germline}.sorted.bai",
+  output:
+    "out/{germline}.verifybamid.germline.completed"
+  log:
+    stderr="log/{germline}.verifybamid.stderr"
+  shell:
+    "tools/verifyBamID_1.1.3/verifyBamID/bin/verifyBamID --vcf {input.vcf} --bam {input.bam} --bai {input.bai} --out out/{wildcards.germline}.verifybamid --verbose 2>{log.stderr} && touch {output}"
+
 
 rule multiqc:
   input:
@@ -139,6 +172,8 @@ rule multiqc:
     expand("out/{sample}.metrics.target", sample=config['samples']),
     expand("out/{tumour}.concordance", tumour=config['tumours']),
     expand("out/{tumour}.contamination", tumour=config['tumours']),
+    expand("out/{tumour}.verifybamid.somatic.completed", tumour=config['tumours']),
+    expand("out/{germline}.verifybamid.germline.completed", germline=germline_samples()),
     "out/qc.summary.tsv"
     
   output:
@@ -214,45 +249,94 @@ rule qc_oxidative_artifacts:
     "module load java/1.8.0_25 && "
     "java -jar tools/picard-2.8.2.jar CollectOxoGMetrics I={input.bam} O={output} R={input.reference} 2>{log.stderr} 1>{log.stdout}"
 
-### variant calling ###
-rule strelka:
+### somatic variant calling ###
+rule strelka_somatic:
   input:
     reference=config["genome"],
-    bams=tumour_normal_bams
+    bams=tumour_germline_bams
 
   output:
-    "out/{tumour}.strelka.snvs.vcf.gz",
-    "out/{tumour}.strelka.indels.vcf.gz",
+    "out/{tumour}.strelka.somatic.snvs.vcf.gz",
+    "out/{tumour}.strelka.somatic.indels.vcf.gz",
 
   log:
-    "log/{tumour}.strelka.log"
+    "log/{tumour}.strelka.somatic.log"
 
   params:
-    cores=cluster["strelka"]["n"]
+    cores=cluster["strelka_somatic"]["n"]
 
   shell:
-    "(mkdir -p tmp/strelka_{wildcards.tumour} && "
-    "rm -rf tmp/strelka_{wildcards.tumour}/* && "
+    "(mkdir -p tmp/strelka_{wildcards.tumour}_$$ && "
     "tools/strelka-2.9.2.centos6_x86_64/bin/configureStrelkaSomaticWorkflow.py "
     "--ref {input.reference} "
     "--tumorBam {input.bams[0]} "
     "--normalBam {input.bams[1]} "
-    "--runDir tmp/strelka_{wildcards.tumour} "
+    "--runDir tmp/strelka_{wildcards.tumour}_$$ "
     "--exome && "
-    "tmp/strelka_{wildcards.tumour}/runWorkflow.py -m local -j {params.cores} && "
-    "mv tmp/strelka_{wildcards.tumour}/results/variants/somatic.snvs.vcf.gz {output[0]} && " 
-    "mv tmp/strelka_{wildcards.tumour}/results/variants/somatic.indels.vcf.gz {output[1]} && " 
-    "rm -r tmp/strelka_{wildcards.tumour}) 2>{log}"
+    "tmp/strelka_{wildcards.tumour}_$$/runWorkflow.py -m local -j {params.cores} && "
+    "mv tmp/strelka_{wildcards.tumour}_$$/results/variants/somatic.snvs.vcf.gz {output[0]} && " 
+    "mv tmp/strelka_{wildcards.tumour}_$$/results/variants/somatic.indels.vcf.gz {output[1]} && " 
+    "rm -r tmp/strelka_{wildcards.tumour}_$$ ) 2>{log}"
 
-rule bias_filter:
+rule annotate_af_somatic:
+  input:
+    "out/{tumour}.strelka.somatic.snvs.vcf.gz",
+  output:
+    "out/{tumour}.strelka.somatic.snvs.af.vcf.gz",
+  log:
+    stderr="log/{tumour}.annotate_af.stderr"
+  shell:
+    "module load samtools-intel/1.5 && "
+    "src/annotate_af.py {input} | bgzip >{output} 2>{log.stderr}"
+
+### germline variant calling ###
+rule strelka_germline:
   input:
     reference=config["genome"],
-    bam="out/{tumour}.sorted.bam",
-    vcf="out/{tumour}.strelka.snvs.vcf.gz"
+    bam="out/{germline}.sorted.bam"
+
   output:
-    "out/{tumour}.strelka.snvs.bias.vcf"
+    "out/{germline}.strelka.germline.vcf.gz",
+    "out/{germline}.strelka.germline.vcf.gz.tbi"
+
   log:
-    stderr="log/{tumour}.bias_filter.snvs.bias.err",
-    stdout="log/{tumour}.bias_filter.snvs.bias.out"
+    "log/{germline}.strelka.germline.log"
+
+  params:
+    cores=cluster["strelka_germline"]["n"]
+
   shell:
-    "gunzip < {input.vcf} > tmp/bias_filter_$$.vcf && python tools/DKFZBiasFilter/scripts/biasFilter.py --tempFolder tmp tmp/bias_filter_$$.vcf {input.bam} {input.reference} {output} && rm tmp/bias_filter_$$.vcf"
+    "(mkdir -p tmp/strelka_{wildcards.germline}_$$ && "
+    "tools/strelka-2.9.2.centos6_x86_64/bin/configureStrelkaGermlineWorkflow.py "
+    "--referenceFasta {input.reference} "
+    "--bam {input.bam} "
+    "--runDir tmp/strelka_{wildcards.germline}_$$ "
+    "--exome && "
+    "tmp/strelka_{wildcards.germline}_$$/runWorkflow.py -m local -j {params.cores} && "
+    "mv tmp/strelka_{wildcards.germline}_$$/results/variants/variants.vcf.gz {output[0]} && " 
+    "mv tmp/strelka_{wildcards.germline}_$$/results/variants/variants.vcf.gz.tbi {output[1]} && " 
+    "rm -r tmp/strelka_{wildcards.germline}_$$ ) 2>{log}"
+
+#rule annotate_af_germline:
+#  input:
+#    "out/{germline}.strelka.germline.vcf.gz",
+#  output:
+#    "out/{germline}.strelka.germline.af.vcf.gz",
+#  log:
+#    stderr="log/{germline}.annotate_af.stderr"
+#  shell:
+#    "module load samtools-intel/1.5 && "
+#    "src/annotate_af.py {input} | bgzip >{output} 2>{log.stderr}"
+
+#rule bias_filter:
+#  input:
+#    reference=config["genome"],
+#    bam="out/{tumour}.sorted.bam",
+#    vcf="out/{tumour}.strelka.somatic.snvs.vcf.gz"
+#  output:
+#    "out/{tumour}.strelka.somatic.snvs.bias.vcf"
+#  log:
+#    stderr="log/{tumour}.bias_filter.snvs.bias.err",
+#    stdout="log/{tumour}.bias_filter.snvs.bias.out"
+#  shell:
+#    "gunzip < {input.vcf} > tmp/bias_filter_$$.vcf && python tools/DKFZBiasFilter/scripts/biasFilter.py --tempFolder tmp tmp/bias_filter_$$.vcf {input.bam} {input.reference} {output} && rm tmp/bias_filter_$$.vcf"
