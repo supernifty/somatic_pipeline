@@ -44,6 +44,12 @@ wget 'https://software.broadinstitute.org/gatk/download/auth?package=GATK-archiv
 tar xvfj GenomeAnalysisTK-3.8-1-0-gf15c1c3ef.tar.bz2 
 ```
 
+### GATK 4 Bundle
+```
+wget "gsapubftp-anonymous@ftp.broadinstitute.org:/bundle/b37/1000G_omni2.5.b37.sites.vcf.*"
+wget ftp://gsapubftp-anonymous@ftp.broadinstitute.org/bundle/beta/Mutect2/af-only-gnomad.raw.sites.b37.vcf.gz
+```
+
 ### DKFZBiasFilter
 git clone https://github.com/supernifty/DKFZBiasFilter.git
 pip install -r requirements.txt

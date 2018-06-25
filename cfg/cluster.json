@@ -13,6 +13,60 @@
         "time": "24:00:00"
     },
 
+    "annotate_vep_somatic_snvs": {
+        "n": 4,
+        "memory": 32768,
+        "time": "24:00:00"
+    },
+
+    "annotate_vep_somatic_indels": {
+        "n": 4,
+        "memory": 32768,
+        "time": "24:00:00"
+    },
+
+    "annotate_vep_hc": {
+        "n": 4,
+        "memory": 32768,
+        "time": "24:00:00"
+    },
+
+    "annotate_vep_mutect2": {
+        "n": 4,
+        "memory": 32768,
+        "time": "12:00:00"
+    },
+
+    "annotate_vep_germline": {
+        "n": 4,
+        "memory": 32768,
+        "time": "24:00:00"
+    },
+
+    "gatk_duplicates": {
+        "n": 4,
+        "memory": 32768,
+        "time": "24:00:00"
+    },
+
+    "gatk_haplotype_caller": {
+        "n": 4,
+        "memory": 32768,
+        "time": "24:00:00"
+    },
+
+    "gatk_post_genotype": {
+        "n": 2,
+        "memory": 32768,
+        "time": "24:00:00"
+    },
+
+    "gatk_joint_genotype": {
+        "n": 2,
+        "memory": 32768,
+        "time": "24:00:00"
+    },
+
     "make_sequence_dict": {
         "n": 1,
         "memory": 8192,
@@ -23,6 +77,36 @@
         "n": 1,
         "memory": 8192,
         "time": "1:00:00"
+    },
+
+    "mutect2_filter": {
+        "n": 2,
+        "memory": 16384,
+        "time": "8:00:00"
+    },
+
+    "mutect2_pon": {
+        "n": 2,
+        "memory": 8192,
+        "time": "4:00:00"
+    },
+
+    "mutect2_sample_pon": {
+        "n": 2,
+        "memory": 16384,
+        "time": "12:00:00"
+    },
+
+    "mutect2_somatic": {
+        "n": 2,
+        "memory": 16384,
+        "time": "4:00:00"
+    },
+
+    "mutect2_somatic_chr": {
+        "n": 2,
+        "memory": 32768,
+        "time": "24:00:00"
     },
 
     "sort": {
@@ -85,7 +169,7 @@
         "time": "4:00:00"
     },
 
-    "qc_verifybamid_somatic": {
+    "qc_verifybamid_tumour": {
         "n": 1,
         "memory": 8192,
         "time": "4:00:00"

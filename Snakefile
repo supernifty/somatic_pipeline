@@ -1,7 +1,9 @@
 
 configfile: "cfg/config.yaml"
-
 cluster = json.load(open("cfg/cluster.json"))
+
+# NOTE: no mitochondria MT because they aren't in our exome
+GATK_CHROMOSOMES=('1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22', 'X', 'Y')
 
 ### helper functions ###
 def read_group(wildcards):
@@ -17,6 +19,11 @@ def read_group(wildcards):
   lane = fields[2]
   return "@RG\tID:{sample}.{flowcell}.{barcode}.{lane}\tSM:{sample}\tPU:{flowcell}.{barcode}.{lane}\tPL:Illumina".format(flowcell=flowcell, sample=wildcards.sample, lane=lane, barcode=barcode)
 
+def tumour_germline_dup_bams(wildcards):
+  tumour_bam = 'out/{}.sorted.dups.bam'.format(wildcards.tumour)
+  normal_bam = 'out/{}.sorted.dups.bam'.format(config["tumours"][wildcards.tumour])
+  return [tumour_bam, normal_bam]
+
 def tumour_germline_bams(wildcards):
   tumour_bam = 'out/{}.sorted.bam'.format(wildcards.tumour)
   normal_bam = 'out/{}.sorted.bam'.format(config["tumours"][wildcards.tumour])
@@ -30,9 +37,10 @@ def germline_samples():
 ### final outputs ###
 rule all:
   input:
-    expand("out/{tumour}.strelka.somatic.snvs.af.vcf.gz", tumour=config['tumours']),
-    expand("out/{tumour}.strelka.somatic.indels.vcf.gz", tumour=config['tumours']),
-    expand("out/{germline}.strelka.germline.vcf.gz", germline=germline_samples()),
+    expand("out/{germline}.hc.gvcf.gz", germline=germline_samples()),
+    expand("out/{tumour}.strelka.somatic.snvs.af.vep.vcf.gz", tumour=config['tumours']),
+    expand("out/{tumour}.strelka.somatic.indels.vep.vcf.gz", tumour=config['tumours']),
+    expand("out/{germline}.strelka.germline.filter_gt.vep.vcf.gz", germline=germline_samples()),
     expand("out/{sample}.oxo_metrics.txt", sample=config['samples']),
     expand("out/{sample}.artifact_metrics.txt.error_summary_metrics", sample=config['samples']),
     #expand("out/{tumour}.strelka.somatic.snvs.bias.vcf", tumour=config['tumours']),
@@ -43,9 +51,12 @@ rule all:
     expand("out/{tumour}.concordance", tumour=config['tumours']),
     expand("out/{tumour}.contamination", tumour=config['tumours']),
     expand("out/{tumour}.verifybamid.somatic.completed", tumour=config['tumours']),
-    expand("out/{germline}.verifybamid.germline.completed", germline=germline_samples()),
+    expand("out/{tumour}.mutect2.filter.vep.vcf.gz", tumour=config['tumours']),
+    "out/germline_joint.hc.normalized.vep.vcf",
     "out/qc.summary.tsv",
     "out/multiqc.html"
+
+### QC ###
 
 rule qc_summary:
   input:
@@ -151,17 +162,18 @@ rule qc_verifybamid_tumour:
   shell:
     "tools/verifyBamID_1.1.3/verifyBamID/bin/verifyBamID --vcf {input.vcf} --bam {input.bam} --bai {input.bai} --out out/{wildcards.tumour}.verifybamid --verbose 2>{log.stderr} && touch {output}"
 
-rule qc_verifybamid_germline:
-  input:
-    vcf="out/{germline}.strelka.germline.vcf.gz",
-    bam="out/{germline}.sorted.bam",
-    bai="out/{germline}.sorted.bai",
-  output:
-    "out/{germline}.verifybamid.germline.completed"
-  log:
-    stderr="log/{germline}.verifybamid.stderr"
-  shell:
-    "tools/verifyBamID_1.1.3/verifyBamID/bin/verifyBamID --vcf {input.vcf} --bam {input.bam} --bai {input.bai} --out out/{wildcards.germline}.verifybamid --verbose 2>{log.stderr} && touch {output}"
+# verifybamid doesn't like strelka's germline output
+#rule qc_verifybamid_germline:
+#  input:
+#    vcf="out/{germline}.strelka.germline.filter_gt.vcf.gz",
+#    bam="out/{germline}.sorted.bam",
+#    bai="out/{germline}.sorted.bai",
+#  output:
+#    "out/{germline}.verifybamid.germline.completed"
+#  log:
+#    stderr="log/{germline}.verifybamid.stderr"
+#  shell:
+#    "tools/verifyBamID_1.1.3/verifyBamID/bin/verifyBamID --vcf {input.vcf} --bam {input.bam} --bai {input.bai} --out out/{wildcards.germline}.verifybamid --verbose 2>{log.stderr} && touch {output}"
 
 
 rule multiqc:
@@ -173,7 +185,6 @@ rule multiqc:
     expand("out/{tumour}.concordance", tumour=config['tumours']),
     expand("out/{tumour}.contamination", tumour=config['tumours']),
     expand("out/{tumour}.verifybamid.somatic.completed", tumour=config['tumours']),
-    expand("out/{germline}.verifybamid.germline.completed", germline=germline_samples()),
     "out/qc.summary.tsv"
     
   output:
@@ -212,6 +223,75 @@ rule sort:
   shell:
     "module load java/1.8.0_25 && "
     "java -jar tools/picard-2.8.2.jar SortSam INPUT={input} OUTPUT={output} VALIDATION_STRINGENCY=LENIENT SORT_ORDER=coordinate MAX_RECORDS_IN_RAM=2000000 CREATE_INDEX=True"
+
+# duplicates
+rule gatk_duplicates:
+  input:
+    "out/{sample}.sorted.bam"
+  output:
+    "out/{sample}.sorted.dups.bam",
+    "out/{sample}.markduplicates.metrics"
+  log:
+    "log/{sample}.markduplicates.stderr"
+  shell:
+    "module load java/1.8.0_25 && "
+    "java -jar tools/picard-2.8.2.jar MarkDuplicates INPUT={input} OUTPUT={output[0]} METRICS_FILE={output[1]} VALIDATION_STRINGENCY=LENIENT ASSUME_SORTED=True CREATE_INDEX=True MAX_RECORDS_IN_RAM=2000000"
+
+### germline variant calling ###
+
+rule gatk_haplotype_caller:
+  input:
+    bam="out/{germline}.sorted.dups.bam",
+    reference=config["genome"]
+  output:
+    recal="out/{germline}.recal_table",
+    bqsr="out/{germline}.sorted.dups.bqsr.bam",
+    gvcf="out/{germline}.hc.gvcf.gz"
+  log:
+    "log/{germline}.hc.log"
+  shell:
+    "(module load java/1.8.0_25 && "
+    "tools/gatk-4.0.0.0/gatk BaseRecalibrator --input {input.bam} --output {output.recal} -R {input.reference} --known-sites reference/gatk-4-bundle-b37/dbsnp_138.b37.vcf.bgz --known-sites reference/gatk-4-bundle-b37/Mills_and_1000G_gold_standard.indels.b37.vcf.bgz --known-sites reference/gatk-4-bundle-b37/1000G_phase1.indels.b37.vcf.bgz && "
+    "tools/gatk-4.0.0.0/gatk ApplyBQSR -R {input.reference} -I {input.bam} -bqsr {output.recal} -O {output.bqsr} && "
+    "tools/gatk-4.0.0.0/gatk HaplotypeCaller -R {input.reference} -I {output.bqsr} --emit-ref-confidence GVCF --dbsnp reference/gatk-4-bundle-b37/dbsnp_138.b37.vcf.bgz -O {output.gvcf}"
+    ") 2>{log}"
+
+rule gatk_joint_genotype:
+  input:
+    gvcfs=expand("out/{germline}.hc.gvcf.gz", germline=germline_samples()),
+    reference=config["genome"]
+  output:
+    "out/germline_joint_{chromosome}.vcf"
+  log:
+    "log/gatk_joint_{chromosome}.stderr"
+  params:
+    variant_list=' '.join(['--variant {}'.format(gvcf) for gvcf in expand("out/{germline}.hc.gvcf.gz", germline=germline_samples())])
+  shell:
+    "(module load java/1.8.0_25 && "
+    "java -jar tools/GenomeAnalysisTK-3.7.0.jar -T CombineGVCFs -R {input.reference} {params.variant_list} -L {wildcards.chromosome} -o tmp/germline_combined_{wildcards.chromosome}.gvcf && "
+    "tools/gatk-4.0.0.0/gatk GenotypeGVCFs -R {input.reference} --dbsnp reference/gatk-4-bundle-b37/dbsnp_138.b37.vcf.bgz -V tmp/germline_combined_{wildcards.chromosome}.gvcf -L {wildcards.chromosome} --use-new-qual-calculator true --output out/germline_joint_{wildcards.chromosome}.vcf"
+    ") 2>{log}"
+
+# notes: 
+#   VariantRecalibrator removed due to large cohort size requirements
+rule gatk_post_genotype:
+  input:
+    gvcfs=expand("out/germline_joint_{chromosome}.vcf", chromosome=GATK_CHROMOSOMES),
+    reference=config["genome"]
+  output:
+    "out/germline_joint.hc.normalized.vcf"
+  log:
+    "log/gatk_post.stderr"
+  params:
+    inputs=' '.join(['--INPUT={}'.format(gvcf) for gvcf in expand("out/germline_joint_{chromosome}.vcf", chromosome=GATK_CHROMOSOMES)])
+  shell:
+    "(module load java/1.8.0_25 && module load R-gcc/3.4.0 && module load samtools-intel/1.8 && "
+    "tools/gatk-4.0.0.0/gatk GatherVcfs -R {input.reference} --OUTPUT=tmp/germline_joint.vcf {params.inputs} && "
+    "bgzip -c < tmp/germline_joint.vcf > tmp/germline_joint.vcf.bgz && tabix -p vcf tmp/germline_joint.vcf.bgz && "
+    "tools/gatk-4.0.0.0/gatk CalculateGenotypePosteriors -R {input.reference} --supporting reference/gatk-4-bundle-b37/1000G_phase3_v4_20130502.sites.vcf.bgz -V tmp/germline_joint.vcf.bgz -O tmp/germline_joint.cgp.vcf && "
+    "tools/vt-0.577/vt normalize -n -r {input.reference} tmp/germline_joint.cgp.vcf -o tmp/germline_joint.cgp.normalized.vcf && "
+    "tools/vt-0.577/vt decompose -s tmp/germline_joint.cgp.normalized.vcf | tools/vt-0.577/vt normalize -r {input.reference} - -o {output}"
+    ") 2>{log}"
 
 ### qc ###
 rule qc_sequencing_artifacts:
@@ -289,7 +369,88 @@ rule annotate_af_somatic:
     "module load samtools-intel/1.5 && "
     "src/annotate_af.py {input} | bgzip >{output} 2>{log.stderr}"
 
+# tumour only for each germline
+rule mutect2_sample_pon:
+  input:
+    reference=config["genome"],
+    bam="out/{germline}.sorted.dups.bam",
+    regions="reference/regions.bed"
+  output:
+    "out/{germline}.mutect2.pon.vcf.gz",
+  log:
+    stderr="log/{germline}.mutect2.pon.stderr"
+  shell:
+    "tools/gatk-4.0.0.0/gatk Mutect2 -R {input.reference} -I {input.bam} --tumor-sample {wildcards.germline} -L {input.regions} -O {output} --interval-exclusion-padding 1000 --disable-read-filter MateOnSameContigOrNoMappedMateReadFilter 2>{log.stderr}"
+
+# combine all the samples to make an overall pon
+rule mutect2_pon:
+  input:
+    vcfs=expand("out/{germline}.mutect2.pon.vcf.gz", germline=germline_samples()),
+  output:
+    "out/mutect2.pon.vcf.gz"
+  log:
+    stderr="log/mutect2.pon.stderr"
+  params:
+    vcfs=' '.join(['--vcfs {}'.format(vcf) for vcf in expand("out/{germline}.mutect2.pon.vcf.gz", germline=germline_samples())])
+  shell:
+    "tools/gatk-4.0.0.0/gatk CreateSomaticPanelOfNormals {params.vcfs} -O {output} 2>{log.stderr}"
+
+# mutect2 somatic calls
+rule mutect2_somatic_chr:
+  input:
+    reference=config["genome"],
+    dbsnp="reference/gatk-4-bundle-b37/dbsnp_138.b37.vcf.bgz",
+    regions="reference/regions.bed",
+    pon="out/mutect2.pon.vcf.gz",
+    gnomad="reference/af-only-gnomad.raw.sites.b37.vcf.gz",
+    bams=tumour_germline_dup_bams
+  output:
+    "tmp/{tumour}.{chromosome}.mutect2.vcf.gz",
+  log:
+    stderr="log/{tumour}.{chromosome}.mutect2.stderr"
+  params:
+    germline=lambda wildcards: config["tumours"][wildcards.tumour]
+  shell:
+    "tools/gatk-4.0.0.0/gatk Mutect2 -R {input.reference} -I {input.bams[0]} -I {input.bams[1]} --tumor-sample {wildcards.tumour} --normal-sample {params.germline} --output {output} --output-mode EMIT_VARIANTS_ONLY --dbsnp {input.dbsnp} --germline-resource {input.gnomad} --af-of-alleles-not-in-resource 0.0000025 -pon {input.pon} --interval-exclusion-padding 1000 -L {input.regions} -L {wildcards.chromosome} --interval-set-rule INTERSECTION --disable-read-filter MateOnSameContigOrNoMappedMateReadFilter"
+
+rule mutect2_somatic:
+  input:
+    vcfs=expand("tmp/{{tumour}}.{chromosome}.mutect2.vcf.gz", chromosome=GATK_CHROMOSOMES)
+  output:
+    "out/{tumour}.mutect2.vcf.gz"
+  log:
+    stderr="log/{tumour}.mutect2.mergevcfs.stderr"
+  params:
+    inputs=' '.join(['I={}'.format(vcf) for vcf in expand("tmp/{{tumour}}.{chromosome}.mutect2.vcf.gz", chromosome=GATK_CHROMOSOMES)])
+  shell:
+    "module load java/1.8.0_25 && "
+    "java -jar tools/picard-2.8.2.jar MergeVcfs {params.inputs} O={output} 2>{log.stderr}"
+
+rule mutect2_filter:
+  input:
+    vcf="out/{tumour}.mutect2.vcf.gz",
+    bam="out/{tumour}.sorted.dups.bam",
+    gnomad="reference/af-only-gnomad.raw.sites.b37.vcf.gz"
+  output:
+    "out/{tumour}.mutect2.filter.vcf.gz"
+  log:
+    stderr="log/{tumour}.mutect2-filter.stderr",
+    stdout="log/{tumour}.mutect2-filter.stdout"
+  shell:
+    "(tools/gatk-4.0.0.0/gatk GetPileupSummaries -I {input.bam} -V {input.gnomad} -O tmp/{wildcards.tumour}.mutect2.pileup.table && "
+    "tools/gatk-4.0.0.0/gatk CalculateContamination -I tmp/{wildcards.tumour}.mutect2.pileup.table -O tmp/{wildcards.tumour}.mutect2.contamination.table && "
+    "tools/gatk-4.0.0.0/gatk FilterMutectCalls -V {input.vcf} --contamination-table tmp/{wildcards.tumour}.mutect2.contamination.table -O {output}) 1>{log.stdout} 2>{log.stderr}"
+
 ### germline variant calling ###
+rule filter_strelka_germline:
+  input:
+    "out/{germline}.strelka.germline.vcf.gz",
+  output:
+    "out/{germline}.strelka.germline.filter_gt.vcf.gz",
+  shell:
+    "module load samtools-intel/1.5 && "
+    "gunzip < {input} | grep -v NoPassedVariantGTs | bgzip > {output}"
+    
 rule strelka_germline:
   input:
     reference=config["genome"],
@@ -316,6 +477,77 @@ rule strelka_germline:
     "mv tmp/strelka_{wildcards.germline}_$$/results/variants/variants.vcf.gz {output[0]} && " 
     "mv tmp/strelka_{wildcards.germline}_$$/results/variants/variants.vcf.gz.tbi {output[1]} && " 
     "rm -r tmp/strelka_{wildcards.germline}_$$ ) 2>{log}"
+
+### annotation ###
+rule annotate_vep_somatic_snvs:
+  input:
+    vcf="out/{tumour}.strelka.somatic.snvs.af.vcf.gz",
+    reference=config['genome']
+  output:
+    "out/{tumour}.strelka.somatic.snvs.af.vep.vcf.gz"
+  log:
+    "log/{tumour}.vep.log"
+  params:
+    cores=cluster["annotate_vep_somatic_snvs"]["n"]
+  shell:
+    "module load samtools-intel/1.5 && "
+    "src/annotate.sh {input.vcf} {output} {input.reference} {params.cores} 2>{log}"
+
+rule annotate_vep_somatic_indels:
+  input:
+    vcf="out/{tumour}.strelka.somatic.indels.vcf.gz",
+    reference=config['genome']
+  output:
+    "out/{tumour}.strelka.somatic.indels.vep.vcf.gz"
+  log:
+    "log/{tumour}.vep.log"
+  params:
+    cores=cluster["annotate_vep_somatic_indels"]["n"]
+  shell:
+    "module load samtools-intel/1.5 && "
+    "src/annotate.sh {input.vcf} {output} {input.reference} {params.cores} 2>{log}"
+
+rule annotate_vep_hc:
+  input:
+    vcf="out/germline_joint.hc.normalized.vcf",
+    reference=config['genome']
+  output:
+    "out/germline_joint.hc.normalized.vep.vcf"
+  log:
+    "log/hc.vep.log"
+  params:
+    cores=cluster["annotate_vep_germline"]["n"]
+  shell:
+    "module load samtools-intel/1.5 && "
+    "src/annotate.sh {input.vcf} {output} {input.reference} {params.cores} 2>{log}"
+
+rule annotate_vep_mutect2:
+  input:
+    vcf="out/{tumour}.mutect2.filter.vcf.gz",
+    reference=config['genome']
+  output:
+    "out/{tumour}.mutect2.filter.vep.vcf.gz"
+  log:
+    "log/{tumour}.mutect2.vep.log"
+  params:
+    cores=cluster["annotate_vep_mutect2"]["n"]
+  shell:
+    "module load samtools-intel/1.5 && "
+    "src/annotate.sh {input.vcf} {output} {input.reference} {params.cores} 2>{log}"
+
+rule annotate_vep_germline:
+  input:
+    vcf="out/{germline}.strelka.germline.filter_gt.vcf.gz",
+    reference=config['genome']
+  output:
+    "out/{germline}.strelka.germline.filter_gt.vep.vcf.gz"
+  log:
+    "log/{germline}.strelka.vep.log"
+  params:
+    cores=cluster["annotate_vep_germline"]["n"]
+  shell:
+    "module load samtools-intel/1.5 && "
+    "src/annotate.sh {input.vcf} {output} {input.reference} {params.cores} 2>{log}"
 
 #rule annotate_af_germline:
 #  input:
