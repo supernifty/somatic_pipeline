@@ -59,6 +59,12 @@ pip install -r requirements.txt
 git clone https://github.com/supernifty/Conpair.git
 ```
 
+### Trimmomatic ###
+```
+wget http://www.usadellab.org/cms/uploads/supplementary/Trimmomatic/Trimmomatic-0.38.zip
+unzip Trimmomatic-0.38.zip
+```
+
 ### verifyBamID ###
 ```
 wget https://github.com/statgen/verifyBamID/releases/download/v1.1.3/verifyBamIDLibStatGen.1.1.3.tgz

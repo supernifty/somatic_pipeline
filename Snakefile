@@ -25,8 +25,8 @@ def tumour_germline_dup_bams(wildcards):
   return [tumour_bam, normal_bam]
 
 def tumour_germline_bams(wildcards):
-  tumour_bam = 'out/{}.sorted.bam'.format(wildcards.tumour)
-  normal_bam = 'out/{}.sorted.bam'.format(config["tumours"][wildcards.tumour])
+  tumour_bam = 'out/{}.sorted.dups.bam'.format(wildcards.tumour)
+  normal_bam = 'out/{}.sorted.dups.bam'.format(config["tumours"][wildcards.tumour])
   return [tumour_bam, normal_bam]
 
 def germline_samples():
@@ -52,7 +52,7 @@ rule all:
     expand("out/{tumour}.contamination", tumour=config['tumours']),
     expand("out/{tumour}.verifybamid.somatic.completed", tumour=config['tumours']),
     expand("out/{tumour}.mutect2.filter.vep.vcf.gz", tumour=config['tumours']),
-    "out/germline_joint.hc.normalized.vep.vcf",
+    "out/germline_joint.hc.normalized.vep.vcf.gz",
     "out/qc.summary.tsv",
     "out/multiqc.html"
 
@@ -101,7 +101,7 @@ rule make_intervals:
 rule qc_target:
   input:
     reference=config["genome"],
-    bam="out/{sample}.sorted.bam",
+    bam="out/{sample}.sorted.dups.bam",
     intervals="out/regions.intervals"
   output:
     "out/{sample}.metrics.target"
@@ -112,7 +112,7 @@ rule qc_target:
 rule qc_insertsize:
   input:
     reference=config["genome"],
-    bam="out/{sample}.sorted.bam"
+    bam="out/{sample}.sorted.dups.bam"
   output:
     "out/{sample}.metrics.insertsize"
   shell:
@@ -121,7 +121,7 @@ rule qc_insertsize:
 
 rule qc_alignment:
   input:
-    bam="out/{sample}.sorted.bam"
+    bam="out/{sample}.sorted.dups.bam"
   output:
     "out/{sample}.metrics.alignment"
   shell:
@@ -153,8 +153,8 @@ rule qc_conpair:
 rule qc_verifybamid_tumour:
   input:
     vcf="out/{tumour}.strelka.somatic.snvs.af.vcf.gz",
-    bam="out/{tumour}.sorted.bam",
-    bai="out/{tumour}.sorted.bai",
+    bam="out/{tumour}.sorted.dups.bam",
+    bai="out/{tumour}.sorted.dups.bai",
   output:
     "out/{tumour}.verifybamid.somatic.completed"
   log:
@@ -166,8 +166,8 @@ rule qc_verifybamid_tumour:
 #rule qc_verifybamid_germline:
 #  input:
 #    vcf="out/{germline}.strelka.germline.filter_gt.vcf.gz",
-#    bam="out/{germline}.sorted.bam",
-#    bai="out/{germline}.sorted.bai",
+#    bam="out/{germline}.sorted.dups.bam",
+#    bai="out/{germline}.sorted.dups.bai",
 #  output:
 #    "out/{germline}.verifybamid.germline.completed"
 #  log:
@@ -193,16 +193,34 @@ rule multiqc:
     "multiqc --force --filename {output} out"
 
 ### alignment ###
+rule trim:
+  input:
+    fastqs=lambda wildcards: config["samples"][wildcards.sample]
+  output:
+    "out/{sample}_R1.trimmed.paired.fq.gz",
+    "out/{sample}_R1.trimmed.unpaired.fq.gz",
+    "out/{sample}_R2.trimmed.paired.fq.gz",
+    "out/{sample}_R2.trimmed.unpaired.fq.gz"
+  log:
+    stderr="log/{sample}.trimmomatic.stderr"
+  params:
+    cores=cluster["align"]["n"],
+  shell:
+    "module load java/1.8.0_25 && "
+    "java -jar tools/Trimmomatic-0.38/trimmomatic-0.38.jar PE -threads {params.cores} -phred33 {input.fastqs} {output} ILLUMINACLIP:tools/Trimmomatic-0.38/adapters/TruSeq3-PE.fa:2:30:10 LEADING:3 TRAILING:3 SLIDINGWINDOW:4:15 MINLEN:36 2>{log.stderr}"
+
 rule align:
   input:
     reference=config["genome"],
-    fastqs=lambda wildcards: config["samples"][wildcards.sample]
+    fastq_r1="out/{sample}_R1.trimmed.paired.fq.gz", 
+    fastq_r2="out/{sample}_R2.trimmed.paired.fq.gz"
+    #fastqs=lambda wildcards: config["samples"][wildcards.sample]
 
   output:
-    "out/{sample}.bam"
+    "tmp/{sample}.paired.bam"
 
   log:
-    "log/{sample}.bwa.log"
+    "log/{sample}.paired.bwa.log"
 
   params:
     cores=cluster["align"]["n"],
@@ -210,32 +228,70 @@ rule align:
 
   shell:
     "module load bwa-intel/0.7.12 && module load samtools-intel/1.4 && "
-    "(bwa mem -M -t {params.cores} -R \"{params.read_group}\" {input.reference} {input.fastqs} | samtools view -b -h -o {output} -) 2>{log}"
+    "(bwa mem -M -t {params.cores} -R \"{params.read_group}\" {input.reference} {input.fastq_r1} {input.fastq_r2} | samtools view -b -h -o {output} -) 2>{log}"
+
+rule align_unpaired:
+  input:
+    reference=config["genome"],
+    fastq_r1="out/{sample}_R1.trimmed.unpaired.fq.gz", 
+    fastq_r2="out/{sample}_R2.trimmed.unpaired.fq.gz"
+
+  output:
+    r1="tmp/{sample}_R1.unpaired.bam",
+    r2="tmp/{sample}_R2.unpaired.bam"
+
+  log:
+    "log/{sample}.bwa_unpaired.log"
+
+  params:
+    cores=cluster["align_unpaired"]["n"],
+    read_group=read_group
+
+  shell:
+    "module load bwa-intel/0.7.12 && module load samtools-intel/1.4 && "
+    "(bwa mem -M -t {params.cores} -R \"{params.read_group}\" {input.reference} {input.fastq_r1} | samtools view -b -h -o {output.r1} - && "
+    "bwa mem -M -t {params.cores} -R \"{params.read_group}\" {input.reference} {input.fastq_r2} | samtools view -b -h -o {output.r2} -) 2>{log}"
+
+# sort the bam
+rule merge_bams:
+  input:
+    "tmp/{sample}.paired.bam",
+    "tmp/{sample}_R1.unpaired.bam",
+    "tmp/{sample}_R2.unpaired.bam"
+  output:
+    "tmp/{sample}.merged.bam"
+  log:
+    "log/{sample}.merge.log"
+  shell:
+    "module load samtools-intel/1.4 && "
+    "samtools merge {output} {input} 2>{log}"
 
 # sort the bam
 rule sort:
   input:
-    "out/{sample}.bam"
+    "tmp/{sample}.merged.bam"
 
   output:
-    "out/{sample}.sorted.bam"
+    bam="tmp/{sample}.sorted.bam",
+    bai="tmp/{sample}.sorted.bai"
 
   shell:
     "module load java/1.8.0_25 && "
-    "java -jar tools/picard-2.8.2.jar SortSam INPUT={input} OUTPUT={output} VALIDATION_STRINGENCY=LENIENT SORT_ORDER=coordinate MAX_RECORDS_IN_RAM=2000000 CREATE_INDEX=True"
+    "java -jar tools/picard-2.8.2.jar SortSam INPUT={input} OUTPUT={output.bam} VALIDATION_STRINGENCY=LENIENT SORT_ORDER=coordinate MAX_RECORDS_IN_RAM=2000000 CREATE_INDEX=True"
 
 # duplicates
 rule gatk_duplicates:
   input:
-    "out/{sample}.sorted.bam"
+    "tmp/{sample}.sorted.bam"
   output:
     "out/{sample}.sorted.dups.bam",
+    "out/{sample}.sorted.dups.bai",
     "out/{sample}.markduplicates.metrics"
   log:
     "log/{sample}.markduplicates.stderr"
   shell:
     "module load java/1.8.0_25 && "
-    "java -jar tools/picard-2.8.2.jar MarkDuplicates INPUT={input} OUTPUT={output[0]} METRICS_FILE={output[1]} VALIDATION_STRINGENCY=LENIENT ASSUME_SORTED=True CREATE_INDEX=True MAX_RECORDS_IN_RAM=2000000"
+    "java -jar tools/picard-2.8.2.jar MarkDuplicates INPUT={input} OUTPUT={output[0]} METRICS_FILE={output[2]} VALIDATION_STRINGENCY=LENIENT ASSUME_SORTED=True CREATE_INDEX=True MAX_RECORDS_IN_RAM=2000000"
 
 ### germline variant calling ###
 
@@ -296,7 +352,7 @@ rule gatk_post_genotype:
 ### qc ###
 rule qc_sequencing_artifacts:
   input:
-    bam="out/{sample}.sorted.bam",
+    bam="out/{sample}.sorted.dups.bam",
     reference=config["genome"]
 
   output:
@@ -315,7 +371,7 @@ rule qc_sequencing_artifacts:
 
 rule qc_oxidative_artifacts:
   input:
-    bam="out/{sample}.sorted.bam",
+    bam="out/{sample}.sorted.dups.bam",
     reference=config["genome"]
 
   output:
@@ -380,7 +436,7 @@ rule mutect2_sample_pon:
   log:
     stderr="log/{germline}.mutect2.pon.stderr"
   shell:
-    "tools/gatk-4.0.0.0/gatk Mutect2 -R {input.reference} -I {input.bam} --tumor-sample {wildcards.germline} -L {input.regions} -O {output} --interval-exclusion-padding 1000 --disable-read-filter MateOnSameContigOrNoMappedMateReadFilter 2>{log.stderr}"
+    "tools/gatk-4.0.0.0/gatk Mutect2 -R {input.reference} -I {input.bam} --tumor-sample {wildcards.germline} -L {input.regions} -O {output} --interval-padding 1000 --disable-read-filter MateOnSameContigOrNoMappedMateReadFilter 2>{log.stderr}"
 
 # combine all the samples to make an overall pon
 rule mutect2_pon:
@@ -411,7 +467,7 @@ rule mutect2_somatic_chr:
   params:
     germline=lambda wildcards: config["tumours"][wildcards.tumour]
   shell:
-    "tools/gatk-4.0.0.0/gatk Mutect2 -R {input.reference} -I {input.bams[0]} -I {input.bams[1]} --tumor-sample {wildcards.tumour} --normal-sample {params.germline} --output {output} --output-mode EMIT_VARIANTS_ONLY --dbsnp {input.dbsnp} --germline-resource {input.gnomad} --af-of-alleles-not-in-resource 0.0000025 -pon {input.pon} --interval-exclusion-padding 1000 -L {input.regions} -L {wildcards.chromosome} --interval-set-rule INTERSECTION --disable-read-filter MateOnSameContigOrNoMappedMateReadFilter"
+    "tools/gatk-4.0.0.0/gatk Mutect2 -R {input.reference} -I {input.bams[0]} -I {input.bams[1]} --tumor-sample {wildcards.tumour} --normal-sample {params.germline} --output {output} --output-mode EMIT_VARIANTS_ONLY --dbsnp {input.dbsnp} --germline-resource {input.gnomad} --af-of-alleles-not-in-resource 0.0000025 -pon {input.pon} --interval-padding 1000 -L {input.regions} -L {wildcards.chromosome} --interval-set-rule INTERSECTION --disable-read-filter MateOnSameContigOrNoMappedMateReadFilter"
 
 rule mutect2_somatic:
   input:
@@ -454,7 +510,7 @@ rule filter_strelka_germline:
 rule strelka_germline:
   input:
     reference=config["genome"],
-    bam="out/{germline}.sorted.bam"
+    bam="out/{germline}.sorted.dups.bam"
 
   output:
     "out/{germline}.strelka.germline.vcf.gz",
@@ -512,7 +568,7 @@ rule annotate_vep_hc:
     vcf="out/germline_joint.hc.normalized.vcf",
     reference=config['genome']
   output:
-    "out/germline_joint.hc.normalized.vep.vcf"
+    "out/germline_joint.hc.normalized.vep.vcf.gz"
   log:
     "log/hc.vep.log"
   params:
@@ -563,7 +619,7 @@ rule annotate_vep_germline:
 #rule bias_filter:
 #  input:
 #    reference=config["genome"],
-#    bam="out/{tumour}.sorted.bam",
+#    bam="out/{tumour}.sorted.dups.bam",
 #    vcf="out/{tumour}.strelka.somatic.snvs.vcf.gz"
 #  output:
 #    "out/{tumour}.strelka.somatic.snvs.bias.vcf"

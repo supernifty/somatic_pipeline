@@ -13,6 +13,17 @@
         "time": "24:00:00"
     },
 
+    "align_unpaired": {
+        "n": 4,
+        "memory": 8192,
+        "time": "12:00:00"
+    },
+
+    "annotate_af_somatic": {
+        "n": 1,
+        "memory": 4096,
+        "time": "4:00:00"
+    },
     "annotate_vep_somatic_snvs": {
         "n": 4,
         "memory": 32768,
@@ -77,6 +88,12 @@
         "n": 1,
         "memory": 8192,
         "time": "1:00:00"
+    },
+
+    "merge_bams": {
+        "n": 1,
+        "memory": 8192,
+        "time": "8:00:00"
     },
 
     "mutect2_filter": {
@@ -173,6 +190,12 @@
         "n": 1,
         "memory": 8192,
         "time": "4:00:00"
+    },
+
+    "trim": {
+        "n": 4,
+        "memory": 16384,
+        "time": "8:00:00"
     },
 
     "fastqc": {
