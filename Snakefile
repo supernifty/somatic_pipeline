@@ -43,15 +43,19 @@ rule all:
     expand("out/{germline}.strelka.germline.filter_gt.vep.vcf.gz", germline=germline_samples()),
     expand("out/{sample}.oxo_metrics.txt", sample=config['samples']),
     expand("out/{sample}.artifact_metrics.txt.error_summary_metrics", sample=config['samples']),
-    #expand("out/{tumour}.strelka.somatic.snvs.bias.vcf", tumour=config['tumours']),
+    expand("out/{tumour}.strelka.somatic.snvs.bias.vcf.gz", tumour=config['tumours']),
+    expand("out/{tumour}.mutect2.filter.bias.vcf.gz", tumour=config['tumours']),
     expand("out/fastqc/{sample}/completed", sample=config['samples']),
     expand("out/{sample}.metrics.insertsize", sample=config['samples']),
     expand("out/{sample}.metrics.alignment", sample=config['samples']),
     expand("out/{sample}.metrics.target", sample=config['samples']),
-    expand("out/{tumour}.concordance", tumour=config['tumours']),
-    expand("out/{tumour}.contamination", tumour=config['tumours']),
     expand("out/{tumour}.verifybamid.somatic.completed", tumour=config['tumours']),
     expand("out/{tumour}.mutect2.filter.vep.vcf.gz", tumour=config['tumours']),
+    expand("out/{tumour}.intersect.vcf.gz", tumour=config['tumours']),
+    "out/mutational_signatures.combined",
+    "out/max_coverage.tsv",
+    "out/max_trimmed_coverage.tsv",
+    "out/ontarget.tsv",
     "out/germline_joint.hc.normalized.vep.vcf.gz",
     "out/qc.summary.tsv",
     "out/multiqc.html"
@@ -75,7 +79,7 @@ rule fastqc:
     "out/fastqc/{sample}/completed"
   shell:
     "module load java/1.8.0_25 && "
-    "mkdir -p {output} && "
+    "mkdir -p out/fastqc/{wildcards.sample} && "
     "tools/FastQC/fastqc --extract --outdir out/fastqc/{wildcards.sample} {input.fastqs} && "
     "touch {output}"
 
@@ -109,21 +113,21 @@ rule qc_target:
     "module load java/1.8.0_25 && "
     "java -jar tools/picard-2.8.2.jar CollectHsMetrics REFERENCE_SEQUENCE={input.reference} INPUT={input.bam} OUTPUT={output} BAIT_INTERVALS={input.intervals} TARGET_INTERVALS={input.intervals}"
 
-rule qc_insertsize:
+rule qc_alignment:
   input:
     reference=config["genome"],
     bam="out/{sample}.sorted.dups.bam"
   output:
-    "out/{sample}.metrics.insertsize"
+    "out/{sample}.metrics.alignment"
   shell:
     "module load java/1.8.0_25 && "
     "java -jar tools/picard-2.8.2.jar CollectAlignmentSummaryMetrics REFERENCE_SEQUENCE={input.reference} INPUT={input.bam} OUTPUT={output}"
 
-rule qc_alignment:
+rule qc_insertsize:
   input:
     bam="out/{sample}.sorted.dups.bam"
   output:
-    "out/{sample}.metrics.alignment"
+    "out/{sample}.metrics.insertsize"
   shell:
     "module load java/1.8.0_25 && "
     "java -jar tools/picard-2.8.2.jar CollectInsertSizeMetrics INPUT={input.bam} OUTPUT={output} HISTOGRAM_FILE={output}.pdf"
@@ -175,6 +179,21 @@ rule qc_verifybamid_tumour:
 #  shell:
 #    "tools/verifyBamID_1.1.3/verifyBamID/bin/verifyBamID --vcf {input.vcf} --bam {input.bam} --bai {input.bai} --out out/{wildcards.germline}.verifybamid --verbose 2>{log.stderr} && touch {output}"
 
+rule qc_depth_of_coverage:
+  input:
+    reference=config["genome"],
+    bed=config["regions"],
+    bam="out/{sample}.sorted.dups.bam"
+  output:
+    "out/{sample}.depth_of_coverage.sample_summary"
+  log:
+    "log/{sample}.depth_of_coverage.stderr"
+  params:
+    prefix="out/{sample}.depth_of_coverage"
+  shell:
+    "module load java/1.8.0_25 && "
+    "java -jar tools/GenomeAnalysisTK-3.7.0.jar -T DepthOfCoverage -R {input.reference} -o {params.prefix} -I {input.bam} -L {input.bed} && rm {params.prefix} "
+    "2>{log}"
 
 rule multiqc:
   input:
@@ -185,12 +204,33 @@ rule multiqc:
     expand("out/{tumour}.concordance", tumour=config['tumours']),
     expand("out/{tumour}.contamination", tumour=config['tumours']),
     expand("out/{tumour}.verifybamid.somatic.completed", tumour=config['tumours']),
+    expand("out/{sample}.depth_of_coverage.sample_summary", sample=config['samples']),
     "out/qc.summary.tsv"
     
   output:
     "out/multiqc.html"
   shell:
     "multiqc --force --filename {output} out"
+
+rule qc_on_target_coverage:
+  input:
+    reference=config["genome"],
+    bed=config["regions"],
+    bam="out/{sample}.sorted.dups.bam"
+  output:
+    "out/{sample}.ontarget"
+  shell:
+    "module load bedtools-intel/2.27.1 && "
+    "bedtools sort -g reference/genome.lengths -i {input.bed} | bedtools merge -i - | bedtools coverage -sorted -a stdin -b {input.bam} -d -g reference/genome.lengths | cut -f5 | src/stats.py > {output}"
+ 
+rule qc_on_target_coverage_combined:
+  input:
+    expand("out/{sample}.ontarget", sample=config['samples']),
+  output:
+    "out/ontarget.tsv"
+  shell:
+    "echo \"Filename    n       Mean    Min     Max     Total\" >{output} && "
+    "for f in {input}; do echo \"$f     $(tail -1 $f)\" >> {output}; done"
 
 ### alignment ###
 rule trim:
@@ -202,12 +242,12 @@ rule trim:
     "out/{sample}_R2.trimmed.paired.fq.gz",
     "out/{sample}_R2.trimmed.unpaired.fq.gz"
   log:
-    stderr="log/{sample}.trimmomatic.stderr"
+    stderr="out/{sample}.trimmomatic.stderr" # has useful output
   params:
     cores=cluster["align"]["n"],
   shell:
     "module load java/1.8.0_25 && "
-    "java -jar tools/Trimmomatic-0.38/trimmomatic-0.38.jar PE -threads {params.cores} -phred33 {input.fastqs} {output} ILLUMINACLIP:tools/Trimmomatic-0.38/adapters/TruSeq3-PE.fa:2:30:10 LEADING:3 TRAILING:3 SLIDINGWINDOW:4:15 MINLEN:36 2>{log.stderr}"
+    "java -jar tools/Trimmomatic-0.38/trimmomatic-0.38.jar PE -threads {params.cores} -phred33 {input.fastqs} {output} ILLUMINACLIP:tools/Trimmomatic-0.38/adapters/TruSeq3-PE.fa:2:30:10:1:TRUE LEADING:3 TRAILING:3 SLIDINGWINDOW:4:15 MINLEN:36 2>{log.stderr}"
 
 rule align:
   input:
@@ -350,6 +390,47 @@ rule gatk_post_genotype:
     ") 2>{log}"
 
 ### qc ###
+rule qc_max_coverage_combine:
+  input:
+    expand("out/{sample}.max_coverage", sample=config['samples']),
+  output:
+    "out/max_coverage.tsv"
+  shell:
+    ">{output} && "
+    "for f in {input}; do echo \"$f $(grep \"Max coverage\" $f)\" >> {output}; done"
+
+rule qc_max_trimmed_coverage_combine:
+  input:
+    expand("out/{sample}.max_trimmed_coverage", sample=config['samples']),
+  output:
+    "out/max_trimmed_coverage.tsv"
+  shell:
+    ">{output} && "
+    "for f in {input}; do echo \"$f $(grep \"Max coverage\" $f)\" >> {output}; done"
+
+rule qc_max_coverage:
+  input:
+    bed=config["regions"],
+    fastqs=lambda wildcards: config["samples"][wildcards.sample]
+  output:
+    "out/{sample}.max_coverage"
+  log:
+    "log/{sample}.max_coverage.stderr"
+  shell:
+    "src/max_coverage.py --verbose --bed {input.bed} --fastqs {input.fastqs} >{output} 2>{log}"
+
+rule qc_max_trimmed_coverage:
+  input:
+    bed=config["regions"],
+    fastqs=("out/{sample}_R1.trimmed.paired.fq.gz", "out/{sample}_R1.trimmed.unpaired.fq.gz", "out/{sample}_R2.trimmed.paired.fq.gz", "out/{sample}_R2.trimmed.unpaired.fq.gz")
+
+  output:
+    "out/{sample}.max_trimmed_coverage"
+  log:
+    "log/{sample}.max_trimmed_coverage.stderr"
+  shell:
+    "src/max_coverage.py --verbose --bed {input.bed} --fastqs {input.fastqs} >{output} 2>{log}"
+
 rule qc_sequencing_artifacts:
   input:
     bam="out/{sample}.sorted.dups.bam",
@@ -605,6 +686,30 @@ rule annotate_vep_germline:
     "module load samtools-intel/1.5 && "
     "src/annotate.sh {input.vcf} {output} {input.reference} {params.cores} 2>{log}"
 
+### other post variant calling
+# TODO https://github.com/hammerlab/concordance
+#rule qc_vcf_concordance:
+#  input:
+#  output:
+#  log:
+#  shell:
+
+rule intersect_somatic_callers:
+  input:
+    reference=config["genome"],
+    mutect2="out/{tumour}.mutect2.filter.vcf.gz",
+    strelka_snvs="out/{tumour}.strelka.somatic.snvs.af.vcf.gz",
+    strelka_indels="out/{tumour}.strelka.somatic.indels.vcf.gz"
+  output:
+    "out/{tumour}.intersect.vcf.gz"
+  log:
+    stderr="log/{tumour}.intersect.log"
+  shell:
+    "(module load samtools-intel/1.5 && "
+    "tools/vt-0.577/vt decompose -s {input.mutect2} | tools/vt-0.577/vt normalize -n -r {input.reference} - -o out/{wildcards.tumour}.mutect2.norm.vcf.gz && "
+    "tools/vt-0.577/vt decompose -s {input.strelka_snvs} | tools/vt-0.577/vt normalize -n -r {input.reference} - -o out/{wildcards.tumour}.strelka.somatic.snvs.af.norm.vcf.gz && "
+    "src/vcf_intersect.py --inputs out/{wildcards.tumour}.strelka.somatic.snvs.af.norm.vcf.gz out/{wildcards.tumour}.mutect2.norm.vcf.gz | bgzip > {output}) 2>{log.stderr}"
+
 #rule annotate_af_germline:
 #  input:
 #    "out/{germline}.strelka.germline.vcf.gz",
@@ -616,15 +721,58 @@ rule annotate_vep_germline:
 #    "module load samtools-intel/1.5 && "
 #    "src/annotate_af.py {input} | bgzip >{output} 2>{log.stderr}"
 
-#rule bias_filter:
-#  input:
-#    reference=config["genome"],
-#    bam="out/{tumour}.sorted.dups.bam",
-#    vcf="out/{tumour}.strelka.somatic.snvs.vcf.gz"
-#  output:
-#    "out/{tumour}.strelka.somatic.snvs.bias.vcf"
-#  log:
-#    stderr="log/{tumour}.bias_filter.snvs.bias.err",
-#    stdout="log/{tumour}.bias_filter.snvs.bias.out"
-#  shell:
-#    "gunzip < {input.vcf} > tmp/bias_filter_$$.vcf && python tools/DKFZBiasFilter/scripts/biasFilter.py --tempFolder tmp tmp/bias_filter_$$.vcf {input.bam} {input.reference} {output} && rm tmp/bias_filter_$$.vcf"
+rule bias_filter_strelka:
+  input:
+    reference=config["genome"],
+    bam="out/{tumour}.sorted.dups.bam",
+    vcf="out/{tumour}.strelka.somatic.snvs.vcf.gz"
+  output:
+    "out/{tumour}.strelka.somatic.snvs.bias.vcf.gz"
+  log:
+    stderr="log/{tumour}.bias_filter.snvs.bias.err",
+    stdout="log/{tumour}.bias_filter.snvs.bias.out"
+  shell:
+    "module load samtools-intel/1.5 && "
+    "gunzip < {input.vcf} | egrep '(^#|PASS)' > tmp/{wildcards.tumour}_bias_filter_strelka.vcf && "
+    "python tools/DKFZBiasFilter/scripts/biasFilter.py --tempFolder tmp tmp/{wildcards.tumour}_bias_filter_strelka.vcf {input.bam} {input.reference} tmp/{wildcards.tumour}_bias_filter_out_strelka.vcf 2>{log.stderr} 1>{log.stdout} && "
+    "bgzip < tmp/{wildcards.tumour}_bias_filter_out_strelka.vcf > {output} && "
+    "rm tmp/{wildcards.tumour}_bias_filter_strelka.vcf tmp/{wildcards.tumour}_bias_filter_out_strelka.vcf"
+
+rule bias_filter_mutect2:
+  input:
+    reference=config["genome"],
+    bam="out/{tumour}.sorted.dups.bam",
+    vcf="out/{tumour}.mutect2.filter.vcf.gz"
+  output:
+    "out/{tumour}.mutect2.filter.bias.vcf.gz"
+  log:
+    stderr="log/{tumour}.bias_filter.mutect2.bias.err",
+    stdout="log/{tumour}.bias_filter.mutect2.bias.out"
+  shell:
+    "module load samtools-intel/1.5 && "
+    "gunzip < {input.vcf} | egrep '(^#|PASS)' > tmp/{wildcards.tumour}_bias_filter_mutect2.vcf && "
+    "python tools/DKFZBiasFilter/scripts/biasFilter.py --tempFolder tmp tmp/{wildcards.tumour}_bias_filter_mutect2.vcf {input.bam} {input.reference} tmp/{wildcards.tumour}_bias_filter_out_mutect2.vcf 2>{log.stderr} 1>{log.stdout} && "
+    "bgzip < tmp/{wildcards.tumour}_bias_filter_out_mutect2.vcf > {output} && "
+    "rm tmp/{wildcards.tumour}_bias_filter_mutect2.vcf tmp/{wildcards.tumour}_bias_filter_out_mutect2.vcf"
+
+# mutational signatures
+rule mutational_signature:
+  input:
+    reference=config["genome"],
+    vcf="out/{tumour}.intersect.vcf.gz"
+  output:
+    "out/{tumour}.mutational_signature.exposures"
+  log:
+    stderr="out/{tumour}.mutational_signature.stderr", # keep for now
+  shell:
+    "(python tools/mutational_signature-0.1/count.py --genome {input.reference} --vcf {input.vcf} > out/{wildcards.tumour}.mutational_signature.counts && "
+    "python tools/mutational_signature-0.1/plot.py out/{wildcards.tumour}.mutational_signature.png < out/{wildcards.tumour}.mutational_signature.counts && "
+    "python tools/mutational_signature-0.1/decompose.py --signatures tools/mutational_signature-0.1/signatures30.txt --counts out/{wildcards.tumour}.mutational_signature.counts > out/{wildcards.tumour}.mutational_signature.exposures) 2>{log.stderr}"
+
+rule combine_mutational_signatures:
+  input:
+    expand("out/{tumour}.mutational_signature.exposures", tumour=config['tumours']),
+  output:
+    "out/mutational_signatures.combined"
+  shell:
+    "src/combine_tsv.py {input} | sed 's/^out\\/\\(.*\)\\.mutational_signature\\.exposures/\\1/' > {output}"

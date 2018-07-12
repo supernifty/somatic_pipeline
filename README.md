@@ -72,6 +72,13 @@ cd tools/verifyBamID_1.1.3
 make
 ```
 
+### mutational signature ###
+cd tools
+wget https://github.com/supernifty/mutational_signature/archive/0.1.tar.gz
+tar xvfz 0.1.tar.gz
+pip install -r mutational_signature-0.1/requirements.txt
+cd -
+
 ## Configuration
 
 * cfg/config.yaml: set sample details

@@ -31,13 +31,13 @@ def main(samples):
         fields = line.strip('\n').split('\t')
         if len(fields) < 12:
           continue
-        if fields[11] == 'Deamination':
+        if fields[2] == 'C' and fields[3] == 'T': # deamination = C -> T
           results[sample]['Deamination'] = float(fields[4]) # TOTAL_QSCORE
           if results[sample]['Deamination'] <= DEAMINATION_THRESHOLD:
             results[sample]['Issues'].append('deamination')
             issues += 1
           to_find -= 1
-        elif fields[11] == 'OxoG':
+        if fields[2] == 'G' and fields[3] == 'T': # oxidation = G -> T
           results[sample]['OxoG'] = float(fields[4]) 
           if results[sample]['OxoG'] <= OXOG_THRESHOLD:
             results[sample]['Issues'].append('oxog')
@@ -54,7 +54,7 @@ def main(samples):
   logging.info('done. %i issues for %i samples', issues, len(results))
 
 if __name__ == '__main__':
-  parser = argparse.ArgumentParser(description='Assess MSI')
+  parser = argparse.ArgumentParser(description='Extract deamination and oxidation scores from picard\'s output')
   parser.add_argument('--samples', required=True, nargs='+', help='sample names')
   parser.add_argument('--verbose', action='store_true', help='more logging')
   args = parser.parse_args()
