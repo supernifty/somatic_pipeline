@@ -150,10 +150,16 @@
         "time": "12:00:00"
     },
 
+    "qc_on_target_coverage_hist": {
+        "n": 1,
+        "memory": 8192,
+        "time": "2:00:00"
+    },
+
     "qc_on_target_coverage": {
         "n": 3,
-        "memory": 4096,
-        "time": "1:00:00"
+        "memory": 8192,
+        "time": "2:00:00"
     },
 
     "qc_sequencing_artifacts": {

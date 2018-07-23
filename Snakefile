@@ -58,7 +58,10 @@ rule all:
     "out/ontarget.tsv",
     "out/germline_joint.hc.normalized.vep.vcf.gz",
     "out/qc.summary.tsv",
-    "out/multiqc.html"
+    "out/multiqc.html",
+    "out/ontarget.png",
+    "out/ontarget_tumour.png",
+    "out/ontarget_germline.png"
 
 ### QC ###
 
@@ -212,20 +215,54 @@ rule multiqc:
   shell:
     "multiqc --force --filename {output} out"
 
+rule qc_on_target_coverage_hist:
+  input:
+    bed=config["regions"],
+    bam="out/{sample}.sorted.dups.bam"
+  output:
+    hist="out/{sample}.ontarget.hist",
+  shell:
+    "module load bedtools-intel/2.27.1 && "
+    "bedtools sort -g reference/genome.lengths -i {input.bed} | bedtools merge -i - | bedtools coverage -sorted -hist -b {input.bam} -a stdin -g reference/genome.lengths | grep ^all > {output.hist}"
+
 rule qc_on_target_coverage:
   input:
     reference=config["genome"],
     bed=config["regions"],
     bam="out/{sample}.sorted.dups.bam"
   output:
-    "out/{sample}.ontarget"
+    summary="out/{sample}.ontarget.summary"
   shell:
     "module load bedtools-intel/2.27.1 && "
-    "bedtools sort -g reference/genome.lengths -i {input.bed} | bedtools merge -i - | bedtools coverage -sorted -a stdin -b {input.bam} -d -g reference/genome.lengths | cut -f5 | src/stats.py > {output}"
- 
+    "bedtools sort -g reference/genome.lengths -i {input.bed} | bedtools merge -i - | bedtools coverage -sorted -a stdin -b {input.bam} -d -g reference/genome.lengths | cut -f5 | src/stats.py > {output.summary}"
+
+rule qc_on_target_coverage_plot:
+  input:
+    expand("out/{sample}.ontarget.hist", sample=config['samples']),
+  output:
+    "out/ontarget.png"
+  shell:
+    "src/plot_coverage.py --target {output} --files {input} --max 10000"
+
+rule qc_on_target_coverage_plot_germline:
+  input:
+    expand("out/{germline}.ontarget.hist", germline=germline_samples()),
+  output:
+    "out/ontarget_germline.png"
+  shell:
+    "src/plot_coverage.py --target {output} --files {input} --max 10000"
+
+rule qc_on_target_coverage_plot_tumour:
+  input:
+    expand("out/{tumour}.ontarget.hist", tumour=config['tumours']),
+  output:
+    "out/ontarget_tumour.png"
+  shell:
+    "src/plot_coverage.py --target {output} --files {input} --max 10000"
+
 rule qc_on_target_coverage_combined:
   input:
-    expand("out/{sample}.ontarget", sample=config['samples']),
+    expand("out/{sample}.ontarget.summary", sample=config['samples']),
   output:
     "out/ontarget.tsv"
   shell:
