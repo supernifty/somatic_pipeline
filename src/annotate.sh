@@ -14,6 +14,8 @@ OUTPUT=$2
 REFERENCE=$3
 THREADS=$4
 
+THREADS=1 # ignore threads parameter due to vep errors
+
 VEPPATH=/vlsci/UOM0040/shared/km/programs/ensembl-vep
 CACHE=/vlsci/UOM0040/shared/km/programs/ensembl-vep/data/
 export PERL5LIB=$PERL5LIB:/vlsci/VR0002/kmahmood/Programs/vep/vep_87/ensembl-tools-release-87/scripts/variant_effect_predictor:tools/vep

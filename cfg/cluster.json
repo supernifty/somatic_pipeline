@@ -42,6 +42,12 @@
         "time": "24:00:00"
     },
 
+    "annotate_vep_hc_tumours": {
+        "n": 4,
+        "memory": 32768,
+        "time": "24:00:00"
+    },
+
     "annotate_vep_mutect2": {
         "n": 4,
         "memory": 32768,
@@ -51,6 +57,12 @@
     "annotate_vep_germline": {
         "n": 4,
         "memory": 32768,
+        "time": "24:00:00"
+    },
+
+    "copy_number_varscan": {
+        "n": 2,
+        "memory": 8192,
         "time": "24:00:00"
     },
 
@@ -67,6 +79,18 @@
     },
 
     "gatk_post_genotype": {
+        "n": 2,
+        "memory": 32768,
+        "time": "24:00:00"
+    },
+
+    "gatk_post_genotype_tumours": {
+        "n": 2,
+        "memory": 32768,
+        "time": "24:00:00"
+    },
+
+    "gatk_joint_genotype_tumours": {
         "n": 2,
         "memory": 32768,
         "time": "24:00:00"
@@ -110,14 +134,14 @@
 
     "mutect2_pon": {
         "n": 2,
-        "memory": 8192,
+        "memory": 16384,
         "time": "4:00:00"
     },
 
     "mutect2_sample_pon": {
         "n": 2,
         "memory": 16384,
-        "time": "12:00:00"
+        "time": "8:00:00"
     },
 
     "mutect2_somatic": {
@@ -182,7 +206,7 @@
 
     "qc_alignment": {
         "n": 1,
-        "memory": 8192,
+        "memory": 16384,
         "time": "4:00:00"
     },
 

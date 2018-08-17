@@ -37,31 +37,37 @@ def germline_samples():
 ### final outputs ###
 rule all:
   input:
-    expand("out/{germline}.hc.gvcf.gz", germline=germline_samples()),
-    expand("out/{tumour}.strelka.somatic.snvs.af.vep.vcf.gz", tumour=config['tumours']),
-    expand("out/{tumour}.strelka.somatic.indels.vep.vcf.gz", tumour=config['tumours']),
-    expand("out/{germline}.strelka.germline.filter_gt.vep.vcf.gz", germline=germline_samples()),
+    expand("out/{tumour}.strelka.somatic.snvs.af.vep.vcf.gz", tumour=config['tumours']), # somatic snvs strelka
+    expand("out/{tumour}.strelka.somatic.indels.vep.vcf.gz", tumour=config['tumours']), # somatic indels strelka
+    expand("out/{germline}.strelka.germline.filter_gt.vep.vcf.gz", germline=germline_samples()), # germline strelka calls
+    expand("out/{germline}.strelka.germline.filter_gt.vep.vcf.gz", germline=config['tumours']), # run the tumours as if they were germline
     expand("out/{sample}.oxo_metrics.txt", sample=config['samples']),
     expand("out/{sample}.artifact_metrics.txt.error_summary_metrics", sample=config['samples']),
     expand("out/{tumour}.strelka.somatic.snvs.bias.vcf.gz", tumour=config['tumours']),
-    expand("out/{tumour}.mutect2.filter.bias.vcf.gz", tumour=config['tumours']),
-    expand("out/fastqc/{sample}/completed", sample=config['samples']),
+    expand("out/{tumour}.mutect2.filter.bias.vcf.gz", tumour=config['tumours']), # somatic mutect2 with dkfz bias annotation
+    expand("out/fastqc/{sample}/completed", sample=config['samples']), # fastqc
     expand("out/{sample}.metrics.insertsize", sample=config['samples']),
     expand("out/{sample}.metrics.alignment", sample=config['samples']),
     expand("out/{sample}.metrics.target", sample=config['samples']),
     expand("out/{tumour}.verifybamid.somatic.completed", tumour=config['tumours']),
     expand("out/{tumour}.mutect2.filter.vep.vcf.gz", tumour=config['tumours']),
-    expand("out/{tumour}.intersect.vcf.gz", tumour=config['tumours']),
+    expand("out/{tumour}.intersect.filter.vcf.gz", tumour=config['tumours']), # somatic combination of strelka and mutect2, with filter
+
+    expand("out/{tumour}.mutect2.filter.genes_of_interest.tsv", tumour=config['tumours']), # filter on genes of interest
+    expand("out/{tumour}.varscan.copynumber.called", tumour=config['tumours']),
+
     "out/mutational_signatures.combined",
+    "out/mutational_signatures.filter.combined",
     "out/max_coverage.tsv",
     "out/max_trimmed_coverage.tsv",
     "out/ontarget.tsv",
-    "out/germline_joint.hc.normalized.vep.vcf.gz",
+    "out/germline_joint.hc.normalized.vep.vcf.gz", # gatk calls for all germline samples
+    "out/tumour_joint.hc.normalized.vep.vcf.gz", # gatk calls for all tumour samples (as germline)
     "out/qc.summary.tsv",
-    "out/multiqc.html",
-    "out/ontarget.png",
-    "out/ontarget_tumour.png",
-    "out/ontarget_germline.png"
+    "out/multiqc.html", # overall general qc
+    "out/ontarget.png", # combined ontarget coverage plots
+    "out/ontarget_tumour.png", # somatic ontarget coverage plots
+    "out/ontarget_germline.png" # germline ontarget coverage plots
 
 ### QC ###
 
@@ -405,6 +411,23 @@ rule gatk_joint_genotype:
     "tools/gatk-4.0.0.0/gatk GenotypeGVCFs -R {input.reference} --dbsnp reference/gatk-4-bundle-b37/dbsnp_138.b37.vcf.bgz -V tmp/germline_combined_{wildcards.chromosome}.gvcf -L {wildcards.chromosome} --use-new-qual-calculator true --output out/germline_joint_{wildcards.chromosome}.vcf"
     ") 2>{log}"
 
+# call germline variants on the tumour for validation
+rule gatk_joint_genotype_tumours:
+  input:
+    gvcfs=expand("out/{germline}.hc.gvcf.gz", germline=config["tumours"]),
+    reference=config["genome"]
+  output:
+    "out/tumour_joint_{chromosome}.vcf"
+  log:
+    "log/gatk_joint_tumour_{chromosome}.stderr"
+  params:
+    variant_list=' '.join(['--variant {}'.format(gvcf) for gvcf in expand("out/{germline}.hc.gvcf.gz", germline=config["tumours"])])
+  shell:
+    "(module load java/1.8.0_25 && "
+    "java -jar tools/GenomeAnalysisTK-3.7.0.jar -T CombineGVCFs -R {input.reference} {params.variant_list} -L {wildcards.chromosome} -o tmp/tumours_combined_{wildcards.chromosome}.gvcf && "
+    "tools/gatk-4.0.0.0/gatk GenotypeGVCFs -R {input.reference} --dbsnp reference/gatk-4-bundle-b37/dbsnp_138.b37.vcf.bgz -V tmp/tumours_combined_{wildcards.chromosome}.gvcf -L {wildcards.chromosome} --use-new-qual-calculator true --output out/tumour_joint_{wildcards.chromosome}.vcf"
+    ") 2>{log}"
+
 # notes: 
 #   VariantRecalibrator removed due to large cohort size requirements
 rule gatk_post_genotype:
@@ -424,6 +447,25 @@ rule gatk_post_genotype:
     "tools/gatk-4.0.0.0/gatk CalculateGenotypePosteriors -R {input.reference} --supporting reference/gatk-4-bundle-b37/1000G_phase3_v4_20130502.sites.vcf.bgz -V tmp/germline_joint.vcf.bgz -O tmp/germline_joint.cgp.vcf && "
     "tools/vt-0.577/vt normalize -n -r {input.reference} tmp/germline_joint.cgp.vcf -o tmp/germline_joint.cgp.normalized.vcf && "
     "tools/vt-0.577/vt decompose -s tmp/germline_joint.cgp.normalized.vcf | tools/vt-0.577/vt normalize -r {input.reference} - -o {output}"
+    ") 2>{log}"
+
+rule gatk_post_genotype_tumours:
+  input:
+    gvcfs=expand("out/tumour_joint_{chromosome}.vcf", chromosome=GATK_CHROMOSOMES),
+    reference=config["genome"]
+  output:
+    "out/tumour_joint.hc.normalized.vcf"
+  log:
+    "log/gatk_post.stderr"
+  params:
+    inputs=' '.join(['--INPUT={}'.format(gvcf) for gvcf in expand("out/tumour_joint_{chromosome}.vcf", chromosome=GATK_CHROMOSOMES)])
+  shell:
+    "(module load java/1.8.0_25 && module load R-gcc/3.4.0 && module load samtools-intel/1.8 && "
+    "tools/gatk-4.0.0.0/gatk GatherVcfs -R {input.reference} --OUTPUT=tmp/tumour_joint.vcf {params.inputs} && "
+    "bgzip -c < tmp/tumour_joint.vcf > tmp/tumour_joint.vcf.bgz && tabix -p vcf tmp/tumour_joint.vcf.bgz && "
+    "tools/gatk-4.0.0.0/gatk CalculateGenotypePosteriors -R {input.reference} --supporting reference/gatk-4-bundle-b37/1000G_phase3_v4_20130502.sites.vcf.bgz -V tmp/tumour_joint.vcf.bgz -O tmp/tumour_joint.cgp.vcf && "
+    "tools/vt-0.577/vt normalize -n -r {input.reference} tmp/tumour_joint.cgp.vcf -o tmp/tumour_joint.cgp.normalized.vcf && "
+    "tools/vt-0.577/vt decompose -s tmp/tumour_joint.cgp.normalized.vcf | tools/vt-0.577/vt normalize -r {input.reference} - -o {output}"
     ") 2>{log}"
 
 ### qc ###
@@ -585,7 +627,7 @@ rule mutect2_somatic_chr:
   params:
     germline=lambda wildcards: config["tumours"][wildcards.tumour]
   shell:
-    "tools/gatk-4.0.0.0/gatk Mutect2 -R {input.reference} -I {input.bams[0]} -I {input.bams[1]} --tumor-sample {wildcards.tumour} --normal-sample {params.germline} --output {output} --output-mode EMIT_VARIANTS_ONLY --dbsnp {input.dbsnp} --germline-resource {input.gnomad} --af-of-alleles-not-in-resource 0.0000025 -pon {input.pon} --interval-padding 1000 -L {input.regions} -L {wildcards.chromosome} --interval-set-rule INTERSECTION --disable-read-filter MateOnSameContigOrNoMappedMateReadFilter"
+    "tools/gatk-4.0.0.0/gatk --java-options '-Xmx30G' Mutect2 -R {input.reference} -I {input.bams[0]} -I {input.bams[1]} --tumor-sample {wildcards.tumour} --normal-sample {params.germline} --output {output} --output-mode EMIT_VARIANTS_ONLY --dbsnp {input.dbsnp} --germline-resource {input.gnomad} --af-of-alleles-not-in-resource 0.0000025 -pon {input.pon} --interval-padding 1000 -L {input.regions} -L {wildcards.chromosome} --interval-set-rule INTERSECTION --disable-read-filter MateOnSameContigOrNoMappedMateReadFilter"
 
 rule mutect2_somatic:
   input:
@@ -695,6 +737,20 @@ rule annotate_vep_hc:
     "module load samtools-intel/1.5 && "
     "src/annotate.sh {input.vcf} {output} {input.reference} {params.cores} 2>{log}"
 
+rule annotate_vep_hc_tumours:
+  input:
+    vcf="out/tumour_joint.hc.normalized.vcf",
+    reference=config['genome']
+  output:
+    "out/tumour_joint.hc.normalized.vep.vcf.gz"
+  log:
+    "log/hc.vep.log"
+  params:
+    cores=cluster["annotate_vep_germline"]["n"]
+  shell:
+    "module load samtools-intel/1.5 && "
+    "src/annotate.sh {input.vcf} {output} {input.reference} {params.cores} 2>{log}"
+
 rule annotate_vep_mutect2:
   input:
     vcf="out/{tumour}.mutect2.filter.vcf.gz",
@@ -734,9 +790,9 @@ rule annotate_vep_germline:
 rule intersect_somatic_callers:
   input:
     reference=config["genome"],
-    mutect2="out/{tumour}.mutect2.filter.vcf.gz",
+    mutect2="out/{tumour}.mutect2.filter.vep.vcf.gz",
     strelka_snvs="out/{tumour}.strelka.somatic.snvs.af.vcf.gz",
-    strelka_indels="out/{tumour}.strelka.somatic.indels.vcf.gz"
+    strelka_indels="out/{tumour}.strelka.somatic.indels.vcf.gz" # TODO not used
   output:
     "out/{tumour}.intersect.vcf.gz"
   log:
@@ -746,6 +802,21 @@ rule intersect_somatic_callers:
     "tools/vt-0.577/vt decompose -s {input.mutect2} | tools/vt-0.577/vt normalize -n -r {input.reference} - -o out/{wildcards.tumour}.mutect2.norm.vcf.gz && "
     "tools/vt-0.577/vt decompose -s {input.strelka_snvs} | tools/vt-0.577/vt normalize -n -r {input.reference} - -o out/{wildcards.tumour}.strelka.somatic.snvs.af.norm.vcf.gz && "
     "src/vcf_intersect.py --inputs out/{wildcards.tumour}.strelka.somatic.snvs.af.norm.vcf.gz out/{wildcards.tumour}.mutect2.norm.vcf.gz | bgzip > {output}) 2>{log.stderr}"
+
+rule filter_intersected_somatic_callers:
+  input:
+    "out/{tumour}.intersect.vcf.gz"
+  output:
+    "out/{tumour}.intersect.filter.vcf.gz"
+  log:
+    stderr="log/{tumour}.intersect_filter.log"
+  params:
+    af=config["af_threshold"],
+    dp=config["dp_threshold"],
+    tumour="{tumour}"
+  shell:
+    "module load samtools-intel/1.5 && "
+    "src/filter_af.py --sample {params.tumour} --af {params.af} --dp {params.dp} < {input} 2>{log.stderr} | bgzip > {output}"
 
 #rule annotate_af_germline:
 #  input:
@@ -792,6 +863,36 @@ rule bias_filter_mutect2:
     "bgzip < tmp/{wildcards.tumour}_bias_filter_out_mutect2.vcf > {output} && "
     "rm tmp/{wildcards.tumour}_bias_filter_mutect2.vcf tmp/{wildcards.tumour}_bias_filter_out_mutect2.vcf"
 
+# filter on genes of interest and convert to tsv
+rule filter_genes_of_interest_tumour:
+  input:
+    vcf="out/{tumour}.mutect2.filter.vep.vcf.gz"
+  output:
+    "out/{tumour}.mutect2.filter.genes_of_interest.tsv"
+  log:
+    stderr="log/{tumour}.filter_genes_of_interest_tumour.err"
+  params:
+    gene_list=' '.join(config["genes_of_interest"])
+  shell:
+    "src/vcf2tsv.py {input.vcf} | "
+    "src/extract_vep.py --header 'Consequence|IMPACT|Codons|Amino_acids|Gene|SYMBOL|Feature|EXON|PolyPhen|SIFT|Protein_position|BIOTYPE|HGVSc|HGVSp|cDNA_position|CDS_position|HGVSc|HGVSp|cDNA_position|CDS_position|gnomAD_AF|gnomAD_AFR_AF|gnomAD_AMR_AF|gnomAD_ASJ_AF|gnomAD_EAS_AF|gnomAD_FIN_AF|gnomAD_NFE_AF|gnomAD_OTH_AF|gnomAD_SAS_AF|MaxEntScan_alt|MaxEntScan_diff|MaxEntScan_ref|PICK' | "
+    "src/filter_tsv.py --column vep_SYMBOL --values {params.gene_list} > {output}"
+
+# TODO
+#rule filter_genes_of_interest_germline:
+#  input:
+#    vcf="out/{tumour}.mutect2.filter.vep.vcf.gz"
+#  output:
+#    "out/{tumour}.mutect2.filter.genes_of_interest.tsv"
+#  log:
+#    stderr="log/{tumour}.filter_genes_of_interest_tumour.err"
+#  params:
+#    gene_list=' '.join(config["genes_of_interest"])
+#  shell:
+#    "src/vcf2tsv.py {input.vcf} | "
+#    "src/extract_vep.py --header 'Consequence|IMPACT|Codons|Amino_acids|Gene|SYMBOL|Feature|EXON|PolyPhen|SIFT|Protein_position|BIOTYPE|HGVSc|HGVSp|cDNA_position|CDS_position|HGVSc|HGVSp|cDNA_position|CDS_position|gnomAD_AF|gnomAD_AFR_AF|gnomAD_AMR_AF|gnomAD_ASJ_AF|gnomAD_EAS_AF|gnomAD_FIN_AF|gnomAD_NFE_AF|gnomAD_OTH_AF|gnomAD_SAS_AF|MaxEntScan_alt|MaxEntScan_diff|MaxEntScan_ref|PICK' | "
+#    "src/filter_tsv.py --column vep_SYMBOL --values {params.gene_list} > {output}"
+
 # mutational signatures
 rule mutational_signature:
   input:
@@ -804,7 +905,7 @@ rule mutational_signature:
   shell:
     "(python tools/mutational_signature-0.1/count.py --genome {input.reference} --vcf {input.vcf} > out/{wildcards.tumour}.mutational_signature.counts && "
     "python tools/mutational_signature-0.1/plot.py out/{wildcards.tumour}.mutational_signature.png < out/{wildcards.tumour}.mutational_signature.counts && "
-    "python tools/mutational_signature-0.1/decompose.py --signatures tools/mutational_signature-0.1/signatures30.txt --counts out/{wildcards.tumour}.mutational_signature.counts > out/{wildcards.tumour}.mutational_signature.exposures) 2>{log.stderr}"
+    "python tools/mutational_signature-0.1/decompose.py --signatures tools/mutational_signature-0.1/signatures30.txt --counts out/{wildcards.tumour}.mutational_signature.counts > {output}) 2>{log.stderr}"
 
 rule combine_mutational_signatures:
   input:
@@ -813,3 +914,42 @@ rule combine_mutational_signatures:
     "out/mutational_signatures.combined"
   shell:
     "src/combine_tsv.py {input} | sed 's/^out\\/\\(.*\)\\.mutational_signature\\.exposures/\\1/' > {output}"
+
+# mutational signatures with filtered counts
+rule mutational_signature_filtered:
+  input:
+    reference=config["genome"],
+    vcf="out/{tumour}.intersect.filter.vcf.gz"
+  output:
+    "out/{tumour}.mutational_signature.filter.exposures"
+  log:
+    stderr="out/{tumour}.mutational_signature.stderr", # keep for now
+  shell:
+    "(python tools/mutational_signature-0.1/count.py --genome {input.reference} --vcf {input.vcf} > out/{wildcards.tumour}.mutational_signature.filter.counts && "
+    "python tools/mutational_signature-0.1/plot.py out/{wildcards.tumour}.mutational_signature.png < out/{wildcards.tumour}.mutational_signature.filter.counts && "
+    "python tools/mutational_signature-0.1/decompose.py --signatures tools/mutational_signature-0.1/signatures30.txt --counts out/{wildcards.tumour}.mutational_signature.filter.counts > {output}) 2>{log.stderr}"
+
+rule combine_mutational_signatures_filtered:
+  input:
+    expand("out/{tumour}.mutational_signature.filter.exposures", tumour=config['tumours']),
+  output:
+    "out/mutational_signatures.filter.combined"
+  shell:
+    "src/combine_tsv.py {input} | sed 's/^out\\/\\(.*\)\\.mutational_signature\\.filter\\.exposures/\\1/' >{output}"
+
+# copy number
+rule copy_number_varscan:
+  input:
+    bams=tumour_germline_bams,
+    reference=config["genome"]
+  output:
+    "out/{tumour}.varscan.copynumber.called"
+  params:
+    tumour="{tumour}"
+  shell:
+    "module load java/1.8.0_25 && "
+    "module load samtools-intel/1.4 && "
+    "samtools mpileup -q 1 -f {input.reference} {input.bams[1]} {input.bams[0]} > tmp/{params.tumour}.mpileups && "
+    "java -jar tools/VarScan.v2.3.9.jar copynumber tmp/{params.tumour}.mpileups out/{params.tumour}.varscan --mpileup 1 && "
+    "java -jar tools/VarScan.v2.3.9.jar copyCaller out/{params.tumour}.varscan.copynumber --output-file {output}"
+

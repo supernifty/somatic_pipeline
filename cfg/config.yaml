@@ -3,6 +3,10 @@ genome: 'reference/genome.fa'
 genome_dict: 'reference/genome.dict'
 regions: 'reference/regions.bed'
 
+# for intersected filtered
+af_threshold: 0.1
+dp_threshold: 50
+
 samples: 
   S1: ['in/S1_N_RG_2_R1.fastq.gz', 'in/S1_N_RG_2_R2.fastq.gz']
   T1: ['in/S1_T_RG_3_R1.fastq.gz', 'in/S1_T_RG_3_R2.fastq.gz']
@@ -12,3 +16,10 @@ samples:
 tumours:
   T1: 'S1'
   T2: 'S2'
+
+# expected variants
+validation:
+  S1: [['CHR', 'POS']]
+
+genes_of_interest: ['BRAF', 'KRAS', 'PIK3CA', 'MLH1', 'MSH2', 'MSH6', 'PMS2', 'POLD1', 'POLE', 'MUTYH', 'NTHL1', 'RNF43', 'AXIN2', 'FAN1']
+
