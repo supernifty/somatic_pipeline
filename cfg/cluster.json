@@ -66,6 +66,12 @@
         "time": "24:00:00"
     },
 
+    "copy_number_varscan_post": {
+        "n": 2,
+        "memory": 4096,
+        "time": "1:00:00"
+    },
+
     "gatk_duplicates": {
         "n": 4,
         "memory": 32768,

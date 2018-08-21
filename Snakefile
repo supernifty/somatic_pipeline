@@ -54,7 +54,7 @@ rule all:
     expand("out/{tumour}.intersect.filter.vcf.gz", tumour=config['tumours']), # somatic combination of strelka and mutect2, with filter
 
     expand("out/{tumour}.mutect2.filter.genes_of_interest.tsv", tumour=config['tumours']), # filter on genes of interest
-    expand("out/{tumour}.varscan.copynumber.called", tumour=config['tumours']),
+    expand("out/{tumour}.varscan.copynumber.deletions.bed", tumour=config['tumours']),
 
     "out/mutational_signatures.combined",
     "out/mutational_signatures.filter.combined",
@@ -952,4 +952,17 @@ rule copy_number_varscan:
     "samtools mpileup -q 1 -f {input.reference} {input.bams[1]} {input.bams[0]} > tmp/{params.tumour}.mpileups && "
     "java -jar tools/VarScan.v2.3.9.jar copynumber tmp/{params.tumour}.mpileups out/{params.tumour}.varscan --mpileup 1 && "
     "java -jar tools/VarScan.v2.3.9.jar copyCaller out/{params.tumour}.varscan.copynumber --output-file {output}"
+
+rule copy_number_varscan_post:
+  input:
+    "out/{tumour}.varscan.copynumber.called"
+  output:
+    "out/{tumour}.varscan.copynumber.deletions.bed"
+  params:
+    tumour="{tumour}"
+  shell:
+    "module load R-gcc/3.4.0 && "
+    "sed '1d' < {input} > tmp/{params.tumour}.varscan.nohead && "
+    "src/varscan_cnv_post.R --in tmp/{params.tumour}.varscan.nohead --out out/{params.tumour}.varscan.merged && " # 1       13360   16851   10      0.7773
+    "awk -v OFS='\t' '{{ if ($5 < -0.3) {{len=$3-$2; print $1, $2, $3, \"logR=\" $5 \";length=\" len \";markers=\" $4}} }}' < out/{params.tumour}.varscan.merged > {output}"
 

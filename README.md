@@ -84,6 +84,16 @@ cd tools
 wget https://downloads.sourceforge.net/project/varscan/VarScan.v2.3.9.jar
 cd -
 
+The following R packages need to be installed:
+```
+#!/usr/bin/env Rscript
+
+# installation
+install.packages('optparse', repos = "http://cran.us.r-project.org")
+source("http://bioconductor.org/biocLite.R");
+biocLite("DNAcopy");
+```
+
 ## Configuration
 
 * cfg/config.yaml: set sample details
