@@ -964,5 +964,5 @@ rule copy_number_varscan_post:
     "module load R-gcc/3.4.0 && "
     "sed '1d' < {input} > tmp/{params.tumour}.varscan.nohead && "
     "src/varscan_cnv_post.R --in tmp/{params.tumour}.varscan.nohead --out out/{params.tumour}.varscan.merged && " # 1       13360   16851   10      0.7773
-    "awk -v OFS='\t' '{{ if ($5 < -0.3) {{len=$3-$2; print $1, $2, $3, \"logR=\" $5 \";length=\" len \";markers=\" $4}} }}' < out/{params.tumour}.varscan.merged > {output}"
+    "awk -v OFS='\t' '{{ if ($5 < -0.1) {{len=$3-$2; print $1, $2, $3, \"logR=\" $5 \";length=\" len \";markers=\" $4}} }}' < out/{params.tumour}.varscan.merged > {output}"
 
