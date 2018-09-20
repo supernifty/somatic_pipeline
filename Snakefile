@@ -34,6 +34,9 @@ def germline_samples():
   tumours = set(config['tumours'])
   return list(samples.difference(tumours))
 
+def germline_sample(wildcards):
+  return config["tumours"][wildcards.tumour]
+
 ### final outputs ###
 rule all:
   input:
@@ -55,6 +58,7 @@ rule all:
 
     expand("out/{tumour}.mutect2.filter.genes_of_interest.tsv", tumour=config['tumours']), # filter on genes of interest
     expand("out/{tumour}.varscan.copynumber.deletions.bed", tumour=config['tumours']),
+    expand("out/{tumour}.platypus.somatic.vcf.gz", tumour=config['tumours']), # platypus somatic calls
 
     "out/mutational_signatures.combined",
     "out/mutational_signatures.filter.combined",
@@ -694,6 +698,35 @@ rule strelka_germline:
     "mv tmp/strelka_{wildcards.germline}_$$/results/variants/variants.vcf.gz.tbi {output[1]} && " 
     "rm -r tmp/strelka_{wildcards.germline}_$$ ) 2>{log}"
 
+### platypus ###
+rule platypus_somatic:
+  input:
+    reference=config["genome"],
+    bams=tumour_germline_bams
+
+  output:
+    joint="out/{tumour}.platypus.joint.vcf.gz",
+    somatic="out/{tumour}.platypus.somatic.vcf.gz"
+
+  log:
+    "log/{tumour}.platypus.somatic.log"
+
+  params:
+    germline=germline_sample
+
+  shell:
+    # platypus has to run from build directory
+    "(module load python-gcc/2.7.13 && "
+    "module load htslib-intel/1.5 && "
+    "module load samtools-intel/1.5 && "
+    "tools/Platypus_0.8.1/Platypus.py callVariants --bamFiles={input.bams[0]},{input.bams[1]} --refFile={input.reference} --output=tmp/platypus_{wildcards.tumour}.vcf && "
+    "bgzip < tmp/platypus_{wildcards.tumour}.vcf > {output.joint} && "
+    "python tools/Platypus/extensions/Cancer/somaticMutationDetector.py --inputVCF tmp/platypus_{wildcards.tumour}.vcf --outputVCF {output.somatic} --tumourSample {wildcards.tumour}.sorted.dups --normalSample {params.germline}.sorted.dups) 2>{log}"
+
+### pindel ###
+#rule pindel_somatic:
+
+
 ### annotation ###
 rule annotate_vep_somatic_snvs:
   input:
@@ -965,4 +998,5 @@ rule copy_number_varscan_post:
     "sed '1d' < {input} > tmp/{params.tumour}.varscan.nohead && "
     "src/varscan_cnv_post.R --in tmp/{params.tumour}.varscan.nohead --out out/{params.tumour}.varscan.merged && " # 1       13360   16851   10      0.7773
     "awk -v OFS='\t' '{{ if ($5 < -0.1) {{len=$3-$2; print $1, $2, $3, \"logR=\" $5 \";length=\" len \";markers=\" $4}} }}' < out/{params.tumour}.varscan.merged > {output}"
+
 

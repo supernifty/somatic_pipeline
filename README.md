@@ -59,6 +59,14 @@ pip install -r requirements.txt
 git clone https://github.com/supernifty/Conpair.git
 ```
 
+### pindel
+wget https://github.com/genome/pindel/archive/v0.2.5b8.tar.gz
+tar xvfj v0.2.5b8.tar.gz
+cd pindel-0.2.5b8
+module load gcc/6.4.0
+module load htslib-intel/1.8
+./INSTALL /usr/local/htslib/1.8-intel/
+
 ### Trimmomatic
 ```
 wget http://www.usadellab.org/cms/uploads/supplementary/Trimmomatic/Trimmomatic-0.38.zip
@@ -78,6 +86,14 @@ wget https://github.com/supernifty/mutational_signature/archive/0.1.tar.gz
 tar xvfz 0.1.tar.gz
 pip install -r mutational_signature-0.1/requirements.txt
 cd -
+
+### platypus
+* request from http://www.well.ox.ac.uk/platypus
+```
+cd tools
+git clone https://github.com/andyrimmer/Platypus
+cd -
+```
 
 ### varscan
 cd tools

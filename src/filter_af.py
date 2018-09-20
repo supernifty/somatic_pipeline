@@ -31,15 +31,15 @@ def main(sample, af_threshold, dp_threshold):
     if len(variant.ALT) > 1:
       logging.warn('variant %i is multi-allelic', variant_count + 1)
 
-    if variant.FILTER is not None: # PASS only
+    if variant.FILTER is not None and variant.FILTER != 'alleleBias': # PASS only, or alleleBias for platypus
       skipped_pass += 1
       continue
 
-    if variant.INFO["DP"] < dp_threshold:
+    if variant.INFO["DP"] < dp_threshold: # somatic + germline
       skipped_dp += 1
       continue
 
-    af = variant.format("AF")[sample_id][0]
+    af = variant.format("AF")[sample_id][0] 
     if af < af_threshold:
       skipped_af += 1
       continue
