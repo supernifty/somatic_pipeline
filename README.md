@@ -3,6 +3,9 @@
 ## Installation
 * Python 3 is required.
 
+Additional libraries required:
+* curl
+
 ```
 python -m venv somatic_venv
 . ./somatic_venv/bin/activate

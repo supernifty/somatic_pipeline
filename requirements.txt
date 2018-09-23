@@ -1,2 +1,5 @@
 snakemake
 multiqc
+scipy
+cyvcf2
+pysam

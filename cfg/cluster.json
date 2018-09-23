@@ -27,37 +27,37 @@
     "annotate_vep_somatic_snvs": {
         "n": 4,
         "memory": 32768,
-        "time": "24:00:00"
+        "time": "32:00:00"
     },
 
     "annotate_vep_somatic_indels": {
         "n": 4,
         "memory": 32768,
-        "time": "24:00:00"
+        "time": "32:00:00"
     },
 
     "annotate_vep_hc": {
         "n": 4,
         "memory": 32768,
-        "time": "24:00:00"
+        "time": "32:00:00"
     },
 
     "annotate_vep_hc_tumours": {
         "n": 4,
         "memory": 32768,
-        "time": "24:00:00"
+        "time": "32:00:00"
     },
 
     "annotate_vep_mutect2": {
         "n": 4,
         "memory": 32768,
-        "time": "12:00:00"
+        "time": "24:00:00"
     },
 
     "annotate_vep_germline": {
         "n": 4,
         "memory": 32768,
-        "time": "24:00:00"
+        "time": "32:00:00"
     },
 
     "copy_number_varscan": {

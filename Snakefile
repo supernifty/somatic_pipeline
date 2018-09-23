@@ -600,6 +600,7 @@ rule mutect2_sample_pon:
   log:
     stderr="log/{germline}.mutect2.pon.stderr"
   shell:
+    "module load java/1.8.0_25 && "
     "tools/gatk-4.0.0.0/gatk Mutect2 -R {input.reference} -I {input.bam} --tumor-sample {wildcards.germline} -L {input.regions} -O {output} --interval-padding 1000 --disable-read-filter MateOnSameContigOrNoMappedMateReadFilter 2>{log.stderr}"
 
 # combine all the samples to make an overall pon
@@ -613,6 +614,7 @@ rule mutect2_pon:
   params:
     vcfs=' '.join(['--vcfs {}'.format(vcf) for vcf in expand("out/{germline}.mutect2.pon.vcf.gz", germline=germline_samples())])
   shell:
+    "module load java/1.8.0_25 && "
     "tools/gatk-4.0.0.0/gatk CreateSomaticPanelOfNormals {params.vcfs} -O {output} 2>{log.stderr}"
 
 # mutect2 somatic calls
@@ -631,6 +633,7 @@ rule mutect2_somatic_chr:
   params:
     germline=lambda wildcards: config["tumours"][wildcards.tumour]
   shell:
+    "module load java/1.8.0_25 && "
     "tools/gatk-4.0.0.0/gatk --java-options '-Xmx30G' Mutect2 -R {input.reference} -I {input.bams[0]} -I {input.bams[1]} --tumor-sample {wildcards.tumour} --normal-sample {params.germline} --output {output} --output-mode EMIT_VARIANTS_ONLY --dbsnp {input.dbsnp} --germline-resource {input.gnomad} --af-of-alleles-not-in-resource 0.0000025 -pon {input.pon} --interval-padding 1000 -L {input.regions} -L {wildcards.chromosome} --interval-set-rule INTERSECTION --disable-read-filter MateOnSameContigOrNoMappedMateReadFilter"
 
 rule mutect2_somatic:
@@ -657,7 +660,8 @@ rule mutect2_filter:
     stderr="log/{tumour}.mutect2-filter.stderr",
     stdout="log/{tumour}.mutect2-filter.stdout"
   shell:
-    "(tools/gatk-4.0.0.0/gatk GetPileupSummaries -I {input.bam} -V {input.gnomad} -O tmp/{wildcards.tumour}.mutect2.pileup.table && "
+    "(module load java/1.8.0_25 && "
+    "tools/gatk-4.0.0.0/gatk GetPileupSummaries -I {input.bam} -V {input.gnomad} -O tmp/{wildcards.tumour}.mutect2.pileup.table && "
     "tools/gatk-4.0.0.0/gatk CalculateContamination -I tmp/{wildcards.tumour}.mutect2.pileup.table -O tmp/{wildcards.tumour}.mutect2.contamination.table && "
     "tools/gatk-4.0.0.0/gatk FilterMutectCalls -V {input.vcf} --contamination-table tmp/{wildcards.tumour}.mutect2.contamination.table -O {output}) 1>{log.stdout} 2>{log.stderr}"
 
