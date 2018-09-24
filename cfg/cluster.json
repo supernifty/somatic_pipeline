@@ -114,6 +114,12 @@
         "time": "1:00:00"
     },
 
+    "loh": {
+        "n": 1,
+        "memory": 8192,
+        "time": "1:00:00"
+    },
+
     "make_sequence_dict": {
         "n": 1,
         "memory": 8192,
@@ -132,6 +138,12 @@
         "time": "8:00:00"
     },
 
+    "mutation_burden": {
+        "n": 1,
+        "memory": 4096,
+        "time": "1:00:00"
+    },
+
     "mutect2_filter": {
         "n": 2,
         "memory": 16384,
@@ -141,19 +153,19 @@
     "mutect2_pon": {
         "n": 2,
         "memory": 16384,
-        "time": "4:00:00"
+        "time": "8:00:00"
     },
 
     "mutect2_sample_pon": {
-        "n": 2,
+        "n": 4,
         "memory": 16384,
-        "time": "8:00:00"
+        "time": "32:00:00"
     },
 
     "mutect2_somatic": {
         "n": 2,
         "memory": 16384,
-        "time": "4:00:00"
+        "time": "6:00:00"
     },
 
     "mutect2_somatic_chr": {

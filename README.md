@@ -90,6 +90,16 @@ tar xvfz 0.1.tar.gz
 pip install -r mutational_signature-0.1/requirements.txt
 cd -
 
+### loh
+```
+cd tools
+wget https://github.com/supernifty/loh_caller/archive/v0.1.tar.gz
+tar xvfz v0.1.tar.gz
+pip install -r loh_caller-0.1/requirements.txt
+cd -
+chmod +x tools/loh_caller-0.1/loh*.py
+```
+
 ### platypus
 * request from http://www.well.ox.ac.uk/platypus
 ```

@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # run on the cluster
-MAXJOBS=128
-PREFIX="ls"
+MAXJOBS=512
+PREFIX="pg"
 
 echo "cleaning up..."
 

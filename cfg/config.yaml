@@ -23,3 +23,7 @@ validation:
 
 genes_of_interest: ['BRAF', 'KRAS', 'PIK3CA', 'MLH1', 'MSH2', 'MSH6', 'PMS2', 'POLD1', 'POLE', 'MUTYH', 'NTHL1', 'RNF43', 'AXIN2', 'FAN1']
 
+# loh configuration
+loh_regions: ['17:63524683-63557766', '2:47630206-47710367', '1:45794914-45806142', '12:133200348-133264110', '19:50887580-50921275', '15:31196076-31235310', '17:56429861-56494943', '16:2089816-2097870' ]
+loh_region_names: ['AXIN2', 'MSH2', 'MUTYH', 'POLE', 'POLD1', 'FAN1', 'RNF43', 'NTHL1' ]
+loh_region_padding: ['50000', '50000', '50000', '50000', '50000', '50000', '50000', '50000' ]
