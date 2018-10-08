@@ -3,6 +3,15 @@ genome: 'reference/genome.fa'
 genome_dict: 'reference/genome.dict'
 regions: 'reference/regions.bed'
 
+module_bedtools: 'module load bedtools-intel/2.27.1'
+module_bwa: 'module load bwa-intel/0.7.12'
+module_htslib: 'module load htslib-intel/1.8'
+module_java: 'module load java/1.8.0_25'
+module_python2: 'module load python-gcc/2.7.13'
+module_R: 'module load R-gcc/3.4.4'
+#module_samtools: 'module load samtools-intel/1.4'
+module_samtools: 'module load samtools-intel/1.8'
+
 # for intersected filtered
 af_threshold: 0.1
 dp_threshold: 50
@@ -24,6 +33,6 @@ validation:
 genes_of_interest: ['BRAF', 'KRAS', 'PIK3CA', 'MLH1', 'MSH2', 'MSH6', 'PMS2', 'POLD1', 'POLE', 'MUTYH', 'NTHL1', 'RNF43', 'AXIN2', 'FAN1']
 
 # loh configuration
-loh_regions: ['17:63524683-63557766', '2:47630206-47710367', '1:45794914-45806142', '12:133200348-133264110', '19:50887580-50921275', '15:31196076-31235310', '17:56429861-56494943', '16:2089816-2097870' ]
-loh_region_names: ['AXIN2', 'MSH2', 'MUTYH', 'POLE', 'POLD1', 'FAN1', 'RNF43', 'NTHL1' ]
-loh_region_padding: ['50000', '50000', '50000', '50000', '50000', '50000', '50000', '50000' ]
+loh_regions: ['17:63524683-63557766', '2:47630206-47710367', '1:45794914-45806142', '12:133200348-133264110', '19:50887580-50921275', '15:31196076-31235310', '17:56429861-56494943', '16:2089816-2097870', '3:37034000-37093000' ]
+loh_region_names: ['AXIN2', 'MSH2', 'MUTYH', 'POLE', 'POLD1', 'FAN1', 'RNF43', 'NTHL1', 'MLH1' ]
+loh_region_padding: ['50000', '50000', '50000', '50000', '50000', '50000', '50000', '50000', '50000' ]

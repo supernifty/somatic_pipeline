@@ -93,7 +93,7 @@ rule fastqc:
   output:
     "out/fastqc/{sample}/completed"
   shell:
-    "module load java/1.8.0_25 && "
+    "{config[module_java]} && "
     "mkdir -p out/fastqc/{wildcards.sample} && "
     "tools/FastQC/fastqc --extract --outdir out/fastqc/{wildcards.sample} {input.fastqs} && "
     "touch {output}"
@@ -104,7 +104,7 @@ rule make_sequence_dict:
   output:
     config["genome_dict"]
   shell:
-    "module load java/1.8.0_25 && "
+    "{config[module_java]} && "
     "java -jar tools/picard-2.8.2.jar CreateSequenceDictionary REFERENCE={input.reference} OUTPUT={output}"
 
 rule make_intervals:
@@ -114,7 +114,7 @@ rule make_intervals:
   output:
     "out/regions.intervals"
   shell:  
-    "module load java/1.8.0_25 && "
+    "{config[module_java]} && "
     "java -jar tools/picard-2.8.2.jar BedToIntervalList INPUT={input.bed} OUTPUT={output} SEQUENCE_DICTIONARY={input.dict}"
 
 rule qc_target:
@@ -125,7 +125,7 @@ rule qc_target:
   output:
     "out/{sample}.metrics.target"
   shell:
-    "module load java/1.8.0_25 && "
+    "{config[module_java]} && "
     "java -jar tools/picard-2.8.2.jar CollectHsMetrics REFERENCE_SEQUENCE={input.reference} INPUT={input.bam} OUTPUT={output} BAIT_INTERVALS={input.intervals} TARGET_INTERVALS={input.intervals}"
 
 rule qc_alignment:
@@ -135,7 +135,7 @@ rule qc_alignment:
   output:
     "out/{sample}.metrics.alignment"
   shell:
-    "module load java/1.8.0_25 && "
+    "{config[module_java]} && "
     "java -jar tools/picard-2.8.2.jar CollectAlignmentSummaryMetrics REFERENCE_SEQUENCE={input.reference} INPUT={input.bam} OUTPUT={output}"
 
 rule qc_insertsize:
@@ -144,8 +144,8 @@ rule qc_insertsize:
   output:
     "out/{sample}.metrics.insertsize"
   shell:
-    "module load java/1.8.0_25 && "
-    "module load R-gcc/3.4.4 && "
+    "{config[module_java]} && "
+    "{config[module_R]} && "
     "java -jar tools/picard-2.8.2.jar CollectInsertSizeMetrics INPUT={input.bam} OUTPUT={output} HISTOGRAM_FILE={output}.pdf"
 
 rule qc_conpair:
@@ -161,7 +161,7 @@ rule qc_conpair:
     stdout="log/{tumour}.conpair.stdout"
   shell:
     "( "
-    "module load java/1.8.0_25 && "
+    "{config[module_java]} && "
     "mkdir -p tmp/conpair_$$ && "
     "python tools/Conpair/scripts/run_gatk_pileup_for_sample.py --reference {input.reference} --conpair_dir tools/Conpair --gatk tools/GenomeAnalysisTK-3.8-1-0-gf15c1c3ef/GenomeAnalysisTK.jar -B {input.bams[0]} -O tmp/conpair_$$/tumour.pileup && "
     "python tools/Conpair/scripts/run_gatk_pileup_for_sample.py --reference {input.reference} --conpair_dir tools/Conpair --gatk tools/GenomeAnalysisTK-3.8-1-0-gf15c1c3ef/GenomeAnalysisTK.jar -B {input.bams[1]} -O tmp/conpair_$$/normal.pileup && "
@@ -207,7 +207,7 @@ rule qc_depth_of_coverage:
   params:
     prefix="out/{sample}.depth_of_coverage"
   shell:
-    "module load java/1.8.0_25 && "
+    "{config[module_java]} && "
     "java -jar tools/GenomeAnalysisTK-3.7.0.jar -T DepthOfCoverage -R {input.reference} -o {params.prefix} -I {input.bam} -L {input.bed} && rm {params.prefix} "
     "2>{log}"
 
@@ -235,7 +235,7 @@ rule qc_on_target_coverage_hist:
   output:
     hist="out/{sample}.ontarget.hist",
   shell:
-    "module load bedtools-intel/2.27.1 && "
+    "{config[module_bedtools]} && "
     "bedtools sort -g reference/genome.lengths -i {input.bed} | bedtools merge -i - | bedtools coverage -sorted -hist -b {input.bam} -a stdin -g reference/genome.lengths | grep ^all > {output.hist}"
 
 rule qc_on_target_coverage:
@@ -246,7 +246,7 @@ rule qc_on_target_coverage:
   output:
     summary="out/{sample}.ontarget.summary"
   shell:
-    "module load bedtools-intel/2.27.1 && "
+    "{config[module_bedtools]} && "
     "bedtools sort -g reference/genome.lengths -i {input.bed} | bedtools merge -i - | bedtools coverage -sorted -a stdin -b {input.bam} -d -g reference/genome.lengths | cut -f5 | src/stats.py > {output.summary}"
 
 rule qc_on_target_coverage_plot:
@@ -296,7 +296,7 @@ rule trim:
   params:
     cores=cluster["align"]["n"],
   shell:
-    "module load java/1.8.0_25 && "
+    "{config[module_java]} && "
     "java -jar tools/Trimmomatic-0.38/trimmomatic-0.38.jar PE -threads {params.cores} -phred33 {input.fastqs} {output} ILLUMINACLIP:tools/Trimmomatic-0.38/adapters/TruSeq3-PE.fa:2:30:10:1:TRUE LEADING:3 TRAILING:3 SLIDINGWINDOW:4:15 MINLEN:36 2>{log.stderr}"
 
 rule align:
@@ -317,7 +317,7 @@ rule align:
     read_group=read_group
 
   shell:
-    "module load bwa-intel/0.7.12 && module load samtools-intel/1.4 && "
+    "{config[module_bwa]} && {config[module_samtools]} && "
     "(bwa mem -M -t {params.cores} -R \"{params.read_group}\" {input.reference} {input.fastq_r1} {input.fastq_r2} | samtools view -b -h -o {output} -) 2>{log}"
 
 rule align_unpaired:
@@ -338,7 +338,7 @@ rule align_unpaired:
     read_group=read_group
 
   shell:
-    "module load bwa-intel/0.7.12 && module load samtools-intel/1.4 && "
+    "{config[module_bwa]} && {config[module_samtools]} && "
     "(bwa mem -M -t {params.cores} -R \"{params.read_group}\" {input.reference} {input.fastq_r1} | samtools view -b -h -o {output.r1} - && "
     "bwa mem -M -t {params.cores} -R \"{params.read_group}\" {input.reference} {input.fastq_r2} | samtools view -b -h -o {output.r2} -) 2>{log}"
 
@@ -353,7 +353,7 @@ rule merge_bams:
   log:
     "log/{sample}.merge.log"
   shell:
-    "module load samtools-intel/1.4 && "
+    "{config[module_samtools]} && "
     "samtools merge {output} {input} 2>{log}"
 
 # sort the bam
@@ -366,7 +366,7 @@ rule sort:
     bai="tmp/{sample}.sorted.bai"
 
   shell:
-    "module load java/1.8.0_25 && "
+    "{config[module_java]} && "
     "java -jar tools/picard-2.8.2.jar SortSam INPUT={input} OUTPUT={output.bam} VALIDATION_STRINGENCY=LENIENT SORT_ORDER=coordinate MAX_RECORDS_IN_RAM=2000000 CREATE_INDEX=True"
 
 # duplicates
@@ -380,7 +380,7 @@ rule gatk_duplicates:
   log:
     "log/{sample}.markduplicates.stderr"
   shell:
-    "module load java/1.8.0_25 && "
+    "{config[module_java]} && "
     "java -jar tools/picard-2.8.2.jar MarkDuplicates INPUT={input} OUTPUT={output[0]} METRICS_FILE={output[2]} VALIDATION_STRINGENCY=LENIENT ASSUME_SORTED=True CREATE_INDEX=True MAX_RECORDS_IN_RAM=2000000"
 
 ### germline variant calling ###
@@ -396,7 +396,7 @@ rule gatk_haplotype_caller:
   log:
     "log/{germline}.hc.log"
   shell:
-    "(module load java/1.8.0_25 && "
+    "({config[module_java]} && "
     "tools/gatk-4.0.0.0/gatk BaseRecalibrator --input {input.bam} --output {output.recal} -R {input.reference} --known-sites reference/gatk-4-bundle-b37/dbsnp_138.b37.vcf.bgz --known-sites reference/gatk-4-bundle-b37/Mills_and_1000G_gold_standard.indels.b37.vcf.bgz --known-sites reference/gatk-4-bundle-b37/1000G_phase1.indels.b37.vcf.bgz && "
     "tools/gatk-4.0.0.0/gatk ApplyBQSR -R {input.reference} -I {input.bam} -bqsr {output.recal} -O {output.bqsr} && "
     "tools/gatk-4.0.0.0/gatk HaplotypeCaller -R {input.reference} -I {output.bqsr} --emit-ref-confidence GVCF --dbsnp reference/gatk-4-bundle-b37/dbsnp_138.b37.vcf.bgz -O {output.gvcf}"
@@ -413,7 +413,7 @@ rule gatk_joint_genotype:
   params:
     variant_list=' '.join(['--variant {}'.format(gvcf) for gvcf in expand("out/{germline}.hc.gvcf.gz", germline=germline_samples())])
   shell:
-    "(module load java/1.8.0_25 && "
+    "({config[module_java]} && "
     "java -jar tools/GenomeAnalysisTK-3.7.0.jar -T CombineGVCFs -R {input.reference} {params.variant_list} -L {wildcards.chromosome} -o tmp/germline_combined_{wildcards.chromosome}.gvcf && "
     "tools/gatk-4.0.0.0/gatk GenotypeGVCFs -R {input.reference} --dbsnp reference/gatk-4-bundle-b37/dbsnp_138.b37.vcf.bgz -V tmp/germline_combined_{wildcards.chromosome}.gvcf -L {wildcards.chromosome} --use-new-qual-calculator true --output out/germline_joint_{wildcards.chromosome}.vcf"
     ") 2>{log}"
@@ -430,7 +430,7 @@ rule gatk_joint_genotype_tumours:
   params:
     variant_list=' '.join(['--variant {}'.format(gvcf) for gvcf in expand("out/{germline}.hc.gvcf.gz", germline=config["tumours"])])
   shell:
-    "(module load java/1.8.0_25 && "
+    "({config[module_java]} && "
     "java -jar tools/GenomeAnalysisTK-3.7.0.jar -T CombineGVCFs -R {input.reference} {params.variant_list} -L {wildcards.chromosome} -o tmp/tumours_combined_{wildcards.chromosome}.gvcf && "
     "tools/gatk-4.0.0.0/gatk GenotypeGVCFs -R {input.reference} --dbsnp reference/gatk-4-bundle-b37/dbsnp_138.b37.vcf.bgz -V tmp/tumours_combined_{wildcards.chromosome}.gvcf -L {wildcards.chromosome} --use-new-qual-calculator true --output out/tumour_joint_{wildcards.chromosome}.vcf"
     ") 2>{log}"
@@ -448,8 +448,8 @@ rule gatk_post_genotype:
   params:
     inputs=' '.join(['--INPUT={}'.format(gvcf) for gvcf in expand("out/germline_joint_{chromosome}.vcf", chromosome=GATK_CHROMOSOMES)])
   shell:
-    "(module load java/1.8.0_25 && module load R-gcc/3.4.0 && module load samtools-intel/1.8 && "
-    "module load htslib-intel/1.8 && "
+    "({config[module_java]} && {config[module_R]} && {config[module_samtools]} && "
+    "{config[module_htslib]} && "
     "tools/gatk-4.0.0.0/gatk GatherVcfs -R {input.reference} --OUTPUT=tmp/germline_joint.vcf {params.inputs} && "
     "bgzip -c < tmp/germline_joint.vcf > tmp/germline_joint.vcf.bgz && tabix -p vcf tmp/germline_joint.vcf.bgz && "
     "tools/gatk-4.0.0.0/gatk CalculateGenotypePosteriors -R {input.reference} --supporting reference/gatk-4-bundle-b37/1000G_phase3_v4_20130502.sites.vcf.bgz -V tmp/germline_joint.vcf.bgz -O tmp/germline_joint.cgp.vcf && "
@@ -468,8 +468,8 @@ rule gatk_post_genotype_tumours:
   params:
     inputs=' '.join(['--INPUT={}'.format(gvcf) for gvcf in expand("out/tumour_joint_{chromosome}.vcf", chromosome=GATK_CHROMOSOMES)])
   shell:
-    "(module load java/1.8.0_25 && module load R-gcc/3.4.0 && module load samtools-intel/1.8 && "
-    "module load htslib-intel/1.8 && "
+    "({config[module_java]} && {config[module_R]} && {config[module_samtools]} && "
+    "{config[module_htslib]} && "
     "tools/gatk-4.0.0.0/gatk GatherVcfs -R {input.reference} --OUTPUT=tmp/tumour_joint.vcf {params.inputs} && "
     "bgzip -c < tmp/tumour_joint.vcf > tmp/tumour_joint.vcf.bgz && tabix -p vcf tmp/tumour_joint.vcf.bgz && "
     "tools/gatk-4.0.0.0/gatk CalculateGenotypePosteriors -R {input.reference} --supporting reference/gatk-4-bundle-b37/1000G_phase3_v4_20130502.sites.vcf.bgz -V tmp/tumour_joint.vcf.bgz -O tmp/tumour_joint.cgp.vcf && "
@@ -535,7 +535,7 @@ rule qc_sequencing_artifacts:
     stdout="log/{sample}.artifact.out"
 
   shell:
-    "module load java/1.8.0_25 && "
+    "{config[module_java]} && "
     "java -jar tools/picard-2.8.2.jar CollectSequencingArtifactMetrics I={input.bam} O={params.prefix} R={input.reference} 2>{log.stderr} 1>{log.stdout}"
 
 rule qc_oxidative_artifacts:
@@ -551,7 +551,7 @@ rule qc_oxidative_artifacts:
     stdout="log/{sample}.oxo.out"
 
   shell:
-    "module load java/1.8.0_25 && "
+    "{config[module_java]} && "
     "java -jar tools/picard-2.8.2.jar CollectOxoGMetrics I={input.bam} O={output} R={input.reference} 2>{log.stderr} 1>{log.stdout}"
 
 ### somatic variant calling ###
@@ -591,8 +591,8 @@ rule annotate_af_somatic:
   log:
     stderr="log/{tumour}.annotate_af.stderr"
   shell:
-    "module load samtools-intel/1.5 && "
-    "module load htslib-intel/1.5 && "
+    "{config[module_samtools]} && "
+    "{config[module_htslib]} && "
     "src/annotate_af.py {input} | bgzip >{output} 2>{log.stderr}"
 
 # tumour only for each germline
@@ -606,7 +606,7 @@ rule mutect2_sample_pon:
   log:
     stderr="log/{germline}.mutect2.pon.stderr"
   shell:
-    "module load java/1.8.0_25 && "
+    "{config[module_java]} && "
     "tools/gatk-4.0.0.0/gatk Mutect2 -R {input.reference} -I {input.bam} --tumor-sample {wildcards.germline} -L {input.regions} -O {output} --interval-padding 1000 --disable-read-filter MateOnSameContigOrNoMappedMateReadFilter 2>{log.stderr}"
 
 # combine all the samples to make an overall pon
@@ -620,7 +620,7 @@ rule mutect2_pon:
   params:
     vcfs=' '.join(['--vcfs {}'.format(vcf) for vcf in expand("out/{germline}.mutect2.pon.vcf.gz", germline=germline_samples())])
   shell:
-    "module load java/1.8.0_25 && "
+    "{config[module_java]} && "
     "tools/gatk-4.0.0.0/gatk CreateSomaticPanelOfNormals {params.vcfs} -O {output} 2>{log.stderr}"
 
 # mutect2 somatic calls
@@ -639,7 +639,7 @@ rule mutect2_somatic_chr:
   params:
     germline=lambda wildcards: config["tumours"][wildcards.tumour]
   shell:
-    "module load java/1.8.0_25 && "
+    "{config[module_java]} && "
     "tools/gatk-4.0.0.0/gatk --java-options '-Xmx30G' Mutect2 -R {input.reference} -I {input.bams[0]} -I {input.bams[1]} --tumor-sample {wildcards.tumour} --normal-sample {params.germline} --output {output} --output-mode EMIT_VARIANTS_ONLY --dbsnp {input.dbsnp} --germline-resource {input.gnomad} --af-of-alleles-not-in-resource 0.0000025 -pon {input.pon} --interval-padding 1000 -L {input.regions} -L {wildcards.chromosome} --interval-set-rule INTERSECTION --disable-read-filter MateOnSameContigOrNoMappedMateReadFilter"
 
 rule mutect2_somatic:
@@ -652,7 +652,7 @@ rule mutect2_somatic:
   params:
     inputs=' '.join(['I={}'.format(vcf) for vcf in expand("tmp/{{tumour}}.{chromosome}.mutect2.vcf.gz", chromosome=GATK_CHROMOSOMES)])
   shell:
-    "module load java/1.8.0_25 && "
+    "{config[module_java]} && "
     "java -jar tools/picard-2.8.2.jar MergeVcfs {params.inputs} O={output} 2>{log.stderr}"
 
 rule mutect2_filter:
@@ -666,7 +666,7 @@ rule mutect2_filter:
     stderr="log/{tumour}.mutect2-filter.stderr",
     stdout="log/{tumour}.mutect2-filter.stdout"
   shell:
-    "(module load java/1.8.0_25 && "
+    "({config[module_java]} && "
     "tools/gatk-4.0.0.0/gatk GetPileupSummaries -I {input.bam} -V {input.gnomad} -O tmp/{wildcards.tumour}.mutect2.pileup.table && "
     "tools/gatk-4.0.0.0/gatk CalculateContamination -I tmp/{wildcards.tumour}.mutect2.pileup.table -O tmp/{wildcards.tumour}.mutect2.contamination.table && "
     "tools/gatk-4.0.0.0/gatk FilterMutectCalls -V {input.vcf} --contamination-table tmp/{wildcards.tumour}.mutect2.contamination.table -O {output}) 1>{log.stdout} 2>{log.stderr}"
@@ -678,7 +678,7 @@ rule filter_strelka_germline:
   output:
     "out/{germline}.strelka.germline.filter_gt.vcf.gz",
   shell:
-    "module load htslib-intel/1.5 && "
+    "{config[module_htslib]} && "
     "gunzip < {input} | grep -v NoPassedVariantGTs | bgzip > {output}"
     
 rule strelka_germline:
@@ -726,9 +726,9 @@ rule platypus_somatic:
 
   shell:
     # platypus has to run from build directory
-    "(module load python-gcc/2.7.13 && "
-    "module load htslib-intel/1.5 && "
-    "module load samtools-intel/1.5 && "
+    "({config[module_python2]} && "
+    "{config[module_htslib]} && "
+    "{config[module_samtools]} && "
     "tools/Platypus_0.8.1/Platypus.py callVariants --bamFiles={input.bams[0]},{input.bams[1]} --refFile={input.reference} --output=tmp/platypus_{wildcards.tumour}.vcf && "
     "bgzip < tmp/platypus_{wildcards.tumour}.vcf > {output.joint} && "
     "python tools/Platypus/extensions/Cancer/somaticMutationDetector.py --inputVCF tmp/platypus_{wildcards.tumour}.vcf --outputVCF {output.somatic} --tumourSample {wildcards.tumour}.sorted.dups --normalSample {params.germline}.sorted.dups) 2>{log}"
@@ -749,7 +749,7 @@ rule annotate_vep_somatic_snvs:
   params:
     cores=cluster["annotate_vep_somatic_snvs"]["n"]
   shell:
-    "module load samtools-intel/1.5 && "
+    "{config[module_samtools]} && "
     "src/annotate.sh {input.vcf} {output} {input.reference} {params.cores} 2>{log}"
 
 rule annotate_vep_somatic_indels:
@@ -763,7 +763,7 @@ rule annotate_vep_somatic_indels:
   params:
     cores=cluster["annotate_vep_somatic_indels"]["n"]
   shell:
-    "module load samtools-intel/1.5 && "
+    "{config[module_samtools]} && "
     "src/annotate.sh {input.vcf} {output} {input.reference} {params.cores} 2>{log}"
 
 rule annotate_vep_hc:
@@ -777,7 +777,7 @@ rule annotate_vep_hc:
   params:
     cores=cluster["annotate_vep_germline"]["n"]
   shell:
-    "module load samtools-intel/1.5 && "
+    "{config[module_samtools]} && "
     "src/annotate.sh {input.vcf} {output} {input.reference} {params.cores} 2>{log}"
 
 rule annotate_vep_hc_tumours:
@@ -791,7 +791,7 @@ rule annotate_vep_hc_tumours:
   params:
     cores=cluster["annotate_vep_germline"]["n"]
   shell:
-    "module load samtools-intel/1.5 && "
+    "{config[module_samtools]} && "
     "src/annotate.sh {input.vcf} {output} {input.reference} {params.cores} 2>{log}"
 
 rule annotate_vep_mutect2:
@@ -805,7 +805,7 @@ rule annotate_vep_mutect2:
   params:
     cores=cluster["annotate_vep_mutect2"]["n"]
   shell:
-    "module load samtools-intel/1.5 && "
+    "{config[module_samtools]} && "
     "src/annotate.sh {input.vcf} {output} {input.reference} {params.cores} 2>{log}"
 
 rule annotate_vep_germline:
@@ -819,7 +819,7 @@ rule annotate_vep_germline:
   params:
     cores=cluster["annotate_vep_germline"]["n"]
   shell:
-    "module load samtools-intel/1.5 && "
+    "{config[module_samtools]} && "
     "src/annotate.sh {input.vcf} {output} {input.reference} {params.cores} 2>{log}"
 
 ### other post variant calling
@@ -841,8 +841,8 @@ rule intersect_somatic_callers:
   log:
     stderr="log/{tumour}.intersect.log"
   shell:
-    "(module load samtools-intel/1.5 && "
-    "module load htslib-intel/1.5 && "
+    "({config[module_samtools]} && "
+    "{config[module_htslib]} && "
     "tools/vt-0.577/vt decompose -s {input.mutect2} | tools/vt-0.577/vt normalize -n -r {input.reference} - -o out/{wildcards.tumour}.mutect2.norm.vcf.gz && "
     "tools/vt-0.577/vt decompose -s {input.strelka_snvs} | tools/vt-0.577/vt normalize -n -r {input.reference} - -o out/{wildcards.tumour}.strelka.somatic.snvs.af.norm.vcf.gz && "
     "src/vcf_intersect.py --inputs out/{wildcards.tumour}.strelka.somatic.snvs.af.norm.vcf.gz out/{wildcards.tumour}.mutect2.norm.vcf.gz | bgzip > {output}) 2>{log.stderr}"
@@ -859,7 +859,7 @@ rule filter_intersected_somatic_callers:
     dp=config["dp_threshold"],
     tumour="{tumour}"
   shell:
-    "module load htslib-intel/1.5 && "
+    "{config[module_htslib]} && "
     "src/filter_af.py --sample {params.tumour} --af {params.af} --dp {params.dp} < {input} 2>{log.stderr} | bgzip > {output}"
 
 #rule annotate_af_germline:
@@ -870,7 +870,7 @@ rule filter_intersected_somatic_callers:
 #  log:
 #    stderr="log/{germline}.annotate_af.stderr"
 #  shell:
-#    "module load samtools-intel/1.5 && "
+#    "{config[module_samtools]} && "
 #    "src/annotate_af.py {input} | bgzip >{output} 2>{log.stderr}"
 
 rule bias_filter_strelka:
@@ -884,7 +884,7 @@ rule bias_filter_strelka:
     stderr="log/{tumour}.bias_filter.snvs.bias.err",
     stdout="log/{tumour}.bias_filter.snvs.bias.out"
   shell:
-    "module load htslib-intel/1.5 && "
+    "{config[module_htslib]} && "
     "gunzip < {input.vcf} | egrep '(^#|PASS)' > tmp/{wildcards.tumour}_bias_filter_strelka.vcf && "
     "python tools/DKFZBiasFilter/scripts/biasFilter.py --tempFolder tmp tmp/{wildcards.tumour}_bias_filter_strelka.vcf {input.bam} {input.reference} tmp/{wildcards.tumour}_bias_filter_out_strelka.vcf 2>{log.stderr} 1>{log.stdout} && "
     "bgzip < tmp/{wildcards.tumour}_bias_filter_out_strelka.vcf > {output} && "
@@ -901,7 +901,7 @@ rule bias_filter_mutect2:
     stderr="log/{tumour}.bias_filter.mutect2.bias.err",
     stdout="log/{tumour}.bias_filter.mutect2.bias.out"
   shell:
-    "module load htslib-intel/1.5 && "
+    "{config[module_htslib]} && "
     "gunzip < {input.vcf} | egrep '(^#|PASS)' > tmp/{wildcards.tumour}_bias_filter_mutect2.vcf && "
     "python tools/DKFZBiasFilter/scripts/biasFilter.py --tempFolder tmp tmp/{wildcards.tumour}_bias_filter_mutect2.vcf {input.bam} {input.reference} tmp/{wildcards.tumour}_bias_filter_out_mutect2.vcf 2>{log.stderr} 1>{log.stdout} && "
     "bgzip < tmp/{wildcards.tumour}_bias_filter_out_mutect2.vcf > {output} && "
@@ -991,8 +991,8 @@ rule copy_number_varscan:
   params:
     tumour="{tumour}"
   shell:
-    "module load java/1.8.0_25 && "
-    "module load samtools-intel/1.4 && "
+    "{config[module_java]} && "
+    "{config[module_samtools]} && "
     "samtools mpileup -q 1 -f {input.reference} {input.bams[1]} {input.bams[0]} > tmp/{params.tumour}.mpileups && "
     "java -jar tools/VarScan.v2.3.9.jar copynumber tmp/{params.tumour}.mpileups out/{params.tumour}.varscan --mpileup 1 && "
     "java -jar tools/VarScan.v2.3.9.jar copyCaller out/{params.tumour}.varscan.copynumber --output-file {output}"
@@ -1005,7 +1005,7 @@ rule copy_number_varscan_post:
   params:
     tumour="{tumour}"
   shell:
-    "module load R-gcc/3.4.0 && "
+    "{config[module_R]} && "
     "sed '1d' < {input} > tmp/{params.tumour}.varscan.nohead && "
     "src/varscan_cnv_post.R --in tmp/{params.tumour}.varscan.nohead --out out/{params.tumour}.varscan.merged && " # 1       13360   16851   10      0.7773
     "awk -v OFS='\t' '{{ if ($5 < -0.1) {{len=$3-$2; print $1, $2, $3, \"logR=\" $5 \";length=\" len \";markers=\" $4}} }}' < out/{params.tumour}.varscan.merged > {output}"
