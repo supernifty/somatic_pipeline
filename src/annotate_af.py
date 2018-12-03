@@ -10,7 +10,7 @@ import numpy
 
 import cyvcf2
 
-def main(vcf_fn):
+def main(sample, vcf_fn):
   '''
     refCounts = Value of FORMAT column $REF + “U” (e.g. if REF="A" then use the value in FOMRAT/AU)
     altCounts = Value of FORMAT column $ALT + “U” (e.g. if ALT="T" then use the value in FOMRAT/TU)
@@ -26,6 +26,8 @@ def main(vcf_fn):
 
   sys.stdout.write(vcf_in.raw_header)
 
+  sample_id = vcf_in.samples.index(sample)
+
   variant_count = 0
   for variant_count, variant in enumerate(vcf_in):
     # GL000220.1      135366  .       T       C       .       LowEVS;LowDepth SOMATIC;QSS=1;TQSS=1;NT=ref;QSS_NT=1;TQSS_NT=1;SGT=TT->TT;DP=2;MQ=60.00;MQ0=0;ReadPosRankSum=0.00;SNVSB=0.00;SomaticEVS=0.71    DP:FDP:SDP:SUBDP:AU:CU:GU:TU    1:0:0:0:0,0:0,0:0,0:1,1 1:0:0:0:0,0:1,1:0,0:0,0
@@ -34,10 +36,8 @@ def main(vcf_fn):
     if len(variant.ALT) > 1:
       logging.warn('%s: variant %i is multi-allelic', vcf_fn, variant_count + 1)
 
-    altCount = refCount = 0
-    for idx, refCountList in enumerate(tier1RefCounts):
-      altCount += int(tier1AltCounts[idx][0])
-      refCount += int(refCountList[0])
+    refCount = tier1RefCounts[sample_id][0]
+    altCount = tier1AltCounts[sample_id][0]
 
     if refCount + altCount == 0:
       af = 0.0
@@ -53,4 +53,4 @@ def main(vcf_fn):
 
 if __name__ == '__main__':
   logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s', level=logging.DEBUG)
-  main(sys.argv[1])
+  main(sys.argv[1], sys.argv[2])

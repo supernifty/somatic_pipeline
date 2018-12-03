@@ -1,9 +1,9 @@
 #!/usr/bin/env Rscript
 
 # installation
-#install.packages('optparse', repos = "http://cran.us.r-project.org")
-#source("http://bioconductor.org/biocLite.R");
-#biocLite("DNAcopy");
+install.packages('optparse', repos = "http://cran.us.r-project.org")
+source("http://bioconductor.org/biocLite.R");
+biocLite("DNAcopy");
 
 # load libraries
 library ('optparse');

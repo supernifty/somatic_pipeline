@@ -1,62 +1,63 @@
 {
     "__default__": {
-        "account": "UOM0040",
+        "account": "punim0567",
         "time": "00:15:00",
         "n": 1,
-        "partition": "main",
-        "memory": 1024
+        "nodes": 1,
+        "memory": 1024,
+        "partition": "snowy"
     },
 
     "align": {
         "n": 4,
-        "memory": 8192,
-        "time": "24:00:00"
+        "memory": 12288,
+        "time": "32:00:00"
     },
 
     "align_unpaired": {
         "n": 4,
-        "memory": 8192,
-        "time": "12:00:00"
+        "memory": 12288,
+        "time": "24:00:00"
     },
 
     "annotate_af_somatic": {
         "n": 1,
         "memory": 4096,
-        "time": "4:00:00"
+        "time": "8:00:00"
     },
     "annotate_vep_somatic_snvs": {
         "n": 4,
-        "memory": 32768,
+        "memory": 49152,
         "time": "32:00:00"
     },
 
     "annotate_vep_somatic_indels": {
         "n": 4,
-        "memory": 32768,
+        "memory": 49152,
         "time": "32:00:00"
     },
 
     "annotate_vep_hc": {
         "n": 4,
-        "memory": 32768,
+        "memory": 49152,
         "time": "32:00:00"
     },
 
     "annotate_vep_hc_tumours": {
         "n": 4,
-        "memory": 32768,
+        "memory": 49152,
         "time": "32:00:00"
     },
 
     "annotate_vep_mutect2": {
         "n": 4,
-        "memory": 32768,
-        "time": "24:00:00"
+        "memory": 49152,
+        "time": "32:00:00"
     },
 
     "annotate_vep_germline": {
         "n": 4,
-        "memory": 32768,
+        "memory": 49152,
         "time": "32:00:00"
     },
 
@@ -69,7 +70,7 @@
     "copy_number_varscan_post": {
         "n": 2,
         "memory": 4096,
-        "time": "1:00:00"
+        "time": "2:00:00"
     },
 
     "gatk_duplicates": {
@@ -141,13 +142,13 @@
     "mutation_burden": {
         "n": 1,
         "memory": 4096,
-        "time": "1:00:00"
+        "time": "2:00:00"
     },
 
     "mutect2_filter": {
         "n": 2,
         "memory": 16384,
-        "time": "8:00:00"
+        "time": "12:00:00"
     },
 
     "mutect2_pon": {
@@ -165,7 +166,7 @@
     "mutect2_somatic": {
         "n": 2,
         "memory": 16384,
-        "time": "6:00:00"
+        "time": "8:00:00"
     },
 
     "mutect2_somatic_chr": {
@@ -183,61 +184,61 @@
     "strelka_germline": {
         "n": 8,
         "memory": 16384,
-        "time": "12:00:00"
+        "time": "16:00:00"
     },
 
     "strelka_somatic": {
         "n": 4,
         "memory": 16384,
-        "time": "12:00:00"
+        "time": "16:00:00"
     },
 
     "platypus_somatic": {
         "n": 4,
         "memory": 16384,
-        "time": "4:00:00"
+        "time": "8:00:00"
     },
 
     "qc_on_target_coverage_hist": {
         "n": 1,
         "memory": 8192,
-        "time": "2:00:00"
+        "time": "4:00:00"
     },
 
     "qc_on_target_coverage": {
         "n": 3,
         "memory": 8192,
-        "time": "2:00:00"
+        "time": "4:00:00"
     },
 
     "qc_sequencing_artifacts": {
         "n": 1,
         "memory": 16384,
-        "time": "4:00:00"
+        "time": "6:00:00"
     },
 
     "qc_target": {
         "n": 1,
         "memory": 16384,
-        "time": "1:00:00"
+        "time": "2:00:00"
     },
 
     "qc_oxidative_artifacts": {
         "n": 1,
         "memory": 16384,
-        "time": "4:00:00"
+        "time": "6:00:00"
     },
 
     "qc_alignment": {
         "n": 1,
         "memory": 16384,
-        "time": "4:00:00"
+        "time": "6:00:00"
     },
 
     "qc_depth_of_coverage": {
         "n": 1,
         "memory": 16384,
-        "time": "4:00:00"
+        "time": "6:00:00"
     },
 
     "qc_conpair": {
@@ -261,7 +262,7 @@
     "qc_insertsize": {
         "n": 1,
         "memory": 16384,
-        "time": "4:00:00"
+        "time": "6:00:00"
     },
 
     "qc_verifybamid_germline": {
@@ -279,13 +280,13 @@
     "trim": {
         "n": 4,
         "memory": 16384,
-        "time": "8:00:00"
+        "time": "10:00:00"
     },
 
     "fastqc": {
         "n": 1,
         "memory": 2048,
-        "time": "4:00:00"
+        "time": "6:00:00"
     },
 
     "multiqc": {
@@ -297,12 +298,12 @@
     "bias_filter_mutect2": {
         "n": 1,
         "memory": 4096,
-        "time": "4:00:00"
+        "time": "6:00:00"
     },
 
     "bias_filter_strelka": {
         "n": 1,
         "memory": 4096,
-        "time": "4:00:00"
+        "time": "6:00:00"
     }
 }

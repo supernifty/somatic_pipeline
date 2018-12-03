@@ -236,7 +236,8 @@ rule qc_on_target_coverage_hist:
     hist="out/{sample}.ontarget.hist",
   shell:
     "{config[module_bedtools]} && "
-    "bedtools sort -g reference/genome.lengths -i {input.bed} | bedtools merge -i - | bedtools coverage -sorted -hist -b {input.bam} -a stdin -g reference/genome.lengths | grep ^all > {output.hist}"
+    #"bedtools sort -g reference/genome.lengths -i {input.bed} | bedtools merge -i - | bedtools coverage -sorted -hist -b {input.bam} -a stdin -g reference/genome.lengths | grep ^all > {output.hist}" # 2.27
+    "bedtools sort -faidx reference/genome.lengths -i {input.bed} | bedtools merge -i - | bedtools coverage -sorted -hist -b {input.bam} -a stdin -g reference/genome.lengths | grep ^all > {output.hist}"
 
 rule qc_on_target_coverage:
   input:
@@ -247,7 +248,8 @@ rule qc_on_target_coverage:
     summary="out/{sample}.ontarget.summary"
   shell:
     "{config[module_bedtools]} && "
-    "bedtools sort -g reference/genome.lengths -i {input.bed} | bedtools merge -i - | bedtools coverage -sorted -a stdin -b {input.bam} -d -g reference/genome.lengths | cut -f5 | src/stats.py > {output.summary}"
+    #"bedtools sort -g reference/genome.lengths -i {input.bed} | bedtools merge -i - | bedtools coverage -sorted -a stdin -b {input.bam} -d -g reference/genome.lengths | cut -f5 | src/stats.py > {output.summary}" # 2.27
+    "bedtools sort -faidx reference/genome.lengths -i {input.bed} | bedtools merge -i - | bedtools coverage -sorted -a stdin -b {input.bam} -d -g reference/genome.lengths | cut -f5 | src/stats.py > {output.summary}"
 
 rule qc_on_target_coverage_plot:
   input:
@@ -593,7 +595,7 @@ rule annotate_af_somatic:
   shell:
     "{config[module_samtools]} && "
     "{config[module_htslib]} && "
-    "src/annotate_af.py {input} | bgzip >{output} 2>{log.stderr}"
+    "src/annotate_af.py TUMOR {input} | bgzip >{output} 2>{log.stderr}"
 
 # tumour only for each germline
 rule mutect2_sample_pon:
@@ -1005,7 +1007,7 @@ rule copy_number_varscan_post:
   params:
     tumour="{tumour}"
   shell:
-    "{config[module_R]} && "
+    "{config[module_network]} && {config[module_R]} && "
     "sed '1d' < {input} > tmp/{params.tumour}.varscan.nohead && "
     "src/varscan_cnv_post.R --in tmp/{params.tumour}.varscan.nohead --out out/{params.tumour}.varscan.merged && " # 1       13360   16851   10      0.7773
     "awk -v OFS='\t' '{{ if ($5 < -0.1) {{len=$3-$2; print $1, $2, $3, \"logR=\" $5 \";length=\" len \";markers=\" $4}} }}' < out/{params.tumour}.varscan.merged > {output}"
