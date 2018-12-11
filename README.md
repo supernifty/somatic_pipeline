@@ -17,6 +17,7 @@ Before starting:
 ```
 module load Python/3.6.1-intel-2017.u2
 module load cURL/7.58.0-intel-2017.u2
+module load icc
 . ../../../software/venv_somatic_2/bin/activate
 ```
 
@@ -105,9 +106,9 @@ make
 
 ### mutational signature
 cd tools
-wget https://github.com/supernifty/mutational_signature/archive/0.1.tar.gz
-tar xvfz 0.1.tar.gz
-pip install -r mutational_signature-0.1/requirements.txt
+wget https://github.com/supernifty/mutational_signature/archive/v0.2.tar.gz
+tar xvfz v0.2.tar.gz
+pip install -r mutational_signature-0.2/requirements.txt
 cd -
 
 ### loh

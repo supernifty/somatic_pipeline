@@ -949,9 +949,9 @@ rule mutational_signature:
   log:
     stderr="out/{tumour}.mutational_signature.stderr", # keep for now
   shell:
-    "(python tools/mutational_signature-0.1/count.py --genome {input.reference} --vcf {input.vcf} > out/{wildcards.tumour}.mutational_signature.counts && "
-    "python tools/mutational_signature-0.1/plot.py out/{wildcards.tumour}.mutational_signature.png < out/{wildcards.tumour}.mutational_signature.counts && "
-    "python tools/mutational_signature-0.1/decompose.py --signatures tools/mutational_signature-0.1/signatures30.txt --counts out/{wildcards.tumour}.mutational_signature.counts > {output}) 2>{log.stderr}"
+    "(python tools/mutational_signature-0.2/count.py --genome {input.reference} --vcf {input.vcf} > out/{wildcards.tumour}.mutational_signature.counts && "
+    "python tools/mutational_signature-0.2/plot_counts.py out/{wildcards.tumour}.mutational_signature.png < out/{wildcards.tumour}.mutational_signature.counts && "
+    "python tools/mutational_signature-0.2/decompose.py --signatures tools/mutational_signature-0.2/signatures30.txt --counts out/{wildcards.tumour}.mutational_signature.counts > {output}) 2>{log.stderr}"
 
 rule combine_mutational_signatures:
   input:
@@ -971,9 +971,9 @@ rule mutational_signature_filtered:
   log:
     stderr="out/{tumour}.mutational_signature.stderr", # keep for now
   shell:
-    "(python tools/mutational_signature-0.1/count.py --genome {input.reference} --vcf {input.vcf} > out/{wildcards.tumour}.mutational_signature.filter.counts && "
-    "python tools/mutational_signature-0.1/plot.py out/{wildcards.tumour}.mutational_signature.png < out/{wildcards.tumour}.mutational_signature.filter.counts && "
-    "python tools/mutational_signature-0.1/decompose.py --signatures tools/mutational_signature-0.1/signatures30.txt --counts out/{wildcards.tumour}.mutational_signature.filter.counts > {output}) 2>{log.stderr}"
+    "(python tools/mutational_signature-0.2/count.py --genome {input.reference} --vcf {input.vcf} > out/{wildcards.tumour}.mutational_signature.filter.counts && "
+    "python tools/mutational_signature-0.2/plot_counts.py out/{wildcards.tumour}.mutational_signature.png < out/{wildcards.tumour}.mutational_signature.filter.counts && "
+    "python tools/mutational_signature-0.2/decompose.py --signatures tools/mutational_signature-0.2/signatures30.txt --counts out/{wildcards.tumour}.mutational_signature.filter.counts > {output}) 2>{log.stderr}"
 
 rule combine_mutational_signatures_filtered:
   input:
