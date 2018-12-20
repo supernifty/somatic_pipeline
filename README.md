@@ -35,6 +35,8 @@ module_network: 'module load web_proxy'
 
 ## Dependencies
 * reference/genome.fa: this file needs to be bwa indexed.
+* reference/msi.regions.bed: TODO
+* reference/regions.bed: TODO
 
 Modules
 * bwa
@@ -106,6 +108,7 @@ make
 
 ### mutational signature
 cd tools
+[ -e v0.2.tar.gz ] && rm v0.2.tar.gz
 wget https://github.com/supernifty/mutational_signature/archive/v0.2.tar.gz
 tar xvfz v0.2.tar.gz
 pip install -r mutational_signature-0.2/requirements.txt
@@ -114,11 +117,12 @@ cd -
 ### loh
 ```
 cd tools
-wget https://github.com/supernifty/loh_caller/archive/v0.1.tar.gz
-tar xvfz v0.1.tar.gz
-pip install -r loh_caller-0.1/requirements.txt
+[ -e v0.2.tar.gz ] && rm v0.2.tar.gz
+wget https://github.com/supernifty/loh_caller/archive/v0.2.tar.gz
+tar xvfz v0.2.tar.gz
+pip install -r loh_caller-0.2/requirements.txt
 cd -
-chmod +x tools/loh_caller-0.1/loh*.py
+chmod +x tools/loh_caller-0.2/loh*.py
 ```
 
 ### platypus

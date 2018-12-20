@@ -145,6 +145,18 @@
         "time": "2:00:00"
     },
 
+    "mutational_signature_filtered": {
+         "n": 1,
+         "memory": 8192,
+         "time": "1:00:00"
+     },
+
+     "mutational_signature": {
+         "n": 1,
+         "memory": 8192,
+         "time": "1:00:00"
+     },
+
     "mutect2_filter": {
         "n": 2,
         "memory": 16384,
@@ -296,6 +308,12 @@
     },
 
     "bias_filter_mutect2": {
+        "n": 1,
+        "memory": 4096,
+        "time": "6:00:00"
+    },
+
+    "bias_filter_strelka_indels": {
         "n": 1,
         "memory": 4096,
         "time": "6:00:00"

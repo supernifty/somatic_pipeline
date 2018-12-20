@@ -1,4 +1,6 @@
 
+VERSION="0.2"
+
 configfile: "cfg/config.yaml"
 cluster = json.load(open("cfg/cluster.json"))
 
@@ -57,23 +59,52 @@ rule all:
     expand("out/{tumour}.intersect.filter.vcf.gz", tumour=config['tumours']), # somatic combination of strelka and mutect2, with filter
 
     expand("out/{tumour}.mutect2.filter.genes_of_interest.tsv", tumour=config['tumours']), # filter on genes of interest
-    expand("out/{tumour}.varscan.copynumber.deletions.bed", tumour=config['tumours']), # TODO fails on mini sample
+    #expand("out/{tumour}.varscan.copynumber.deletions.bed", tumour=config['tumours']), # TODO fails on mini sample
     expand("out/{tumour}.platypus.somatic.vcf.gz", tumour=config['tumours']), # platypus somatic calls
     expand("out/{tumour}.loh.bed", tumour=config['tumours']), # loh regions
 
-    "out/mutational_signatures.combined",
-    "out/mutational_signatures.filter.combined",
-    "out/max_coverage.tsv",
-    "out/max_trimmed_coverage.tsv",
-    "out/ontarget.tsv",
-    "out/germline_joint.hc.normalized.vep.vcf.gz", # gatk calls for all germline samples
-    "out/tumour_joint.hc.normalized.vep.vcf.gz", # gatk calls for all tumour samples (as germline)
-    "out/qc.summary.tsv",
-    "out/multiqc.html", # overall general qc
-    "out/ontarget.png", # combined ontarget coverage plots
-    "out/ontarget_tumour.png", # somatic ontarget coverage plots
-    "out/ontarget_germline.png", # germline ontarget coverage plots
-    "out/mutation_rate.tsv",
+    # combined results
+    "out/aggregate/mutational_signatures.combined",
+    "out/aggregate/mutational_signatures.filter.combined",
+    "out/aggregate/max_coverage.tsv",
+    "out/aggregate/max_trimmed_coverage.tsv",
+    "out/aggregate/ontarget.tsv",
+    "out/aggregate/germline_joint.hc.normalized.vep.vcf.gz", # gatk calls for all germline samples
+    "out/aggregate/tumour_joint.hc.normalized.vep.vcf.gz", # gatk calls for all tumour samples (as germline)
+    "out/aggregate/qc.summary.tsv",
+    "out/aggregate/multiqc.html", # overall general qc
+    "out/aggregate/ontarget.png", # combined ontarget coverage plots
+    "out/aggregate/ontarget_tumour.png", # somatic ontarget coverage plots
+    "out/aggregate/ontarget_germline.png", # germline ontarget coverage plots
+    "out/aggregate/mutation_rate.tsv",
+    "out/aggregate/msi_burden.tsv",
+    "out/aggregate/final.html"
+
+### aggregate ###
+rule make_versions:
+  output:
+    versions="out/aggregate/versions.txt"
+  shell:
+    "src/make_tsv.py --columns Tool Version --rows "
+    "Pipeline,{VERSION} "
+    ">{output.versions}"
+
+rule report_md:
+  input:
+    versions="out/aggregate/versions.txt",
+    signatures="out/aggregate/mutational_signatures.filter.combined"
+  
+  output:
+    md="out/aggregate/final.md",
+    html="out/aggregate/final.html"
+
+  log:
+    stderr="log/make_report.stderr"
+
+  shell:
+    "src/make_report.py --versions {input.versions} --signatures {input.signatures} > {output.md} 2>{log.stderr} && "
+    "{config[module_pandoc]} && "
+    "pandoc {output.md} -o {output.html}"
 
 ### QC ###
 
@@ -81,7 +112,7 @@ rule qc_summary:
   input:
     expand("out/{sample}.artifact_metrics.txt.error_summary_metrics", sample=config['samples'])
   output:
-    "out/qc.summary.tsv"
+    "out/aggregate/qc.summary.tsv"
   log:
     stderr="log/make_summary.stderr"
   shell:
@@ -221,10 +252,10 @@ rule multiqc:
     expand("out/{tumour}.contamination", tumour=config['tumours']), # TODO
     expand("out/{tumour}.verifybamid.somatic.completed", tumour=config['tumours']),
     expand("out/{sample}.depth_of_coverage.sample_summary", sample=config['samples']),
-    "out/qc.summary.tsv"
+    "out/aggregate/qc.summary.tsv"
     
   output:
-    "out/multiqc.html"
+    "out/aggregate/multiqc.html"
   shell:
     "multiqc --force --filename {output} out"
 
@@ -255,7 +286,7 @@ rule qc_on_target_coverage_plot:
   input:
     expand("out/{sample}.ontarget.hist", sample=config['samples']),
   output:
-    "out/ontarget.png"
+    "out/aggregate/ontarget.png"
   shell:
     "src/plot_coverage.py --target {output} --files {input} --max 10000"
 
@@ -263,7 +294,7 @@ rule qc_on_target_coverage_plot_germline:
   input:
     expand("out/{germline}.ontarget.hist", germline=germline_samples()),
   output:
-    "out/ontarget_germline.png"
+    "out/aggregate/ontarget_germline.png"
   shell:
     "src/plot_coverage.py --target {output} --files {input} --max 10000"
 
@@ -271,7 +302,7 @@ rule qc_on_target_coverage_plot_tumour:
   input:
     expand("out/{tumour}.ontarget.hist", tumour=config['tumours']),
   output:
-    "out/ontarget_tumour.png"
+    "out/aggregate/ontarget_tumour.png"
   shell:
     "src/plot_coverage.py --target {output} --files {input} --max 10000"
 
@@ -279,7 +310,7 @@ rule qc_on_target_coverage_combined:
   input:
     expand("out/{sample}.ontarget.summary", sample=config['samples']),
   output:
-    "out/ontarget.tsv"
+    "out/aggregate/ontarget.tsv"
   shell:
     "echo \"Filename    n       Mean    Min     Max     Total\" >{output} && "
     "for f in {input}; do echo \"$f     $(tail -1 $f)\" >> {output}; done"
@@ -484,7 +515,7 @@ rule qc_max_coverage_combine:
   input:
     expand("out/{sample}.max_coverage", sample=config['samples']),
   output:
-    "out/max_coverage.tsv"
+    "out/aggregate/max_coverage.tsv"
   shell:
     ">{output} && "
     "for f in {input}; do echo \"$f $(grep \"Max coverage\" $f)\" >> {output}; done"
@@ -493,7 +524,7 @@ rule qc_max_trimmed_coverage_combine:
   input:
     expand("out/{sample}.max_trimmed_coverage", sample=config['samples']),
   output:
-    "out/max_trimmed_coverage.tsv"
+    "out/aggregate/max_trimmed_coverage.tsv"
   shell:
     ">{output} && "
     "for f in {input}; do echo \"$f $(grep \"Max coverage\" $f)\" >> {output}; done"
@@ -587,7 +618,7 @@ rule strelka_somatic:
 
 rule annotate_af_somatic:
   input:
-    "out/{tumour}.strelka.somatic.snvs.vcf.gz",
+    "out/{tumour}.strelka.somatic.snvs.bias.vcf.gz",
   output:
     "out/{tumour}.strelka.somatic.snvs.af.vcf.gz",
   log:
@@ -756,7 +787,7 @@ rule annotate_vep_somatic_snvs:
 
 rule annotate_vep_somatic_indels:
   input:
-    vcf="out/{tumour}.strelka.somatic.indels.vcf.gz",
+    vcf="out/{tumour}.strelka.somatic.indels.bias.vcf.gz",
     reference=config['genome']
   output:
     "out/{tumour}.strelka.somatic.indels.vep.vcf.gz"
@@ -773,7 +804,7 @@ rule annotate_vep_hc:
     vcf="out/germline_joint.hc.normalized.vcf",
     reference=config['genome']
   output:
-    "out/germline_joint.hc.normalized.vep.vcf.gz"
+    "out/aggregate/germline_joint.hc.normalized.vep.vcf.gz"
   log:
     "log/hc.vep.log"
   params:
@@ -787,7 +818,7 @@ rule annotate_vep_hc_tumours:
     vcf="out/tumour_joint.hc.normalized.vcf",
     reference=config['genome']
   output:
-    "out/tumour_joint.hc.normalized.vep.vcf.gz"
+    "out/aggregate/tumour_joint.hc.normalized.vep.vcf.gz"
   log:
     "log/hc.vep.log"
   params:
@@ -798,7 +829,7 @@ rule annotate_vep_hc_tumours:
 
 rule annotate_vep_mutect2:
   input:
-    vcf="out/{tumour}.mutect2.filter.vcf.gz",
+    vcf="out/{tumour}.mutect2.filter.bias.vcf.gz",
     reference=config['genome']
   output:
     "out/{tumour}.mutect2.filter.vep.vcf.gz"
@@ -831,13 +862,12 @@ rule annotate_vep_germline:
 #  output:
 #  log:
 #  shell:
-
 rule intersect_somatic_callers:
   input:
     reference=config["genome"],
     mutect2="out/{tumour}.mutect2.filter.vep.vcf.gz",
     strelka_snvs="out/{tumour}.strelka.somatic.snvs.af.vcf.gz",
-    strelka_indels="out/{tumour}.strelka.somatic.indels.vcf.gz" # TODO not used
+    strelka_indels="out/{tumour}.strelka.somatic.indels.vcf.gz" 
   output:
     "out/{tumour}.intersect.vcf.gz"
   log:
@@ -845,9 +875,16 @@ rule intersect_somatic_callers:
   shell:
     "({config[module_samtools]} && "
     "{config[module_htslib]} && "
+    "{config[module_bedtools]} && "
     "tools/vt-0.577/vt decompose -s {input.mutect2} | tools/vt-0.577/vt normalize -n -r {input.reference} - -o out/{wildcards.tumour}.mutect2.norm.vcf.gz && "
     "tools/vt-0.577/vt decompose -s {input.strelka_snvs} | tools/vt-0.577/vt normalize -n -r {input.reference} - -o out/{wildcards.tumour}.strelka.somatic.snvs.af.norm.vcf.gz && "
-    "src/vcf_intersect.py --inputs out/{wildcards.tumour}.strelka.somatic.snvs.af.norm.vcf.gz out/{wildcards.tumour}.mutect2.norm.vcf.gz | bgzip > {output}) 2>{log.stderr}"
+    "tools/vt-0.577/vt decompose -s {input.strelka_indels} | tools/vt-0.577/vt normalize -n -r {input.reference} - -o out/{wildcards.tumour}.strelka.somatic.indels.af.norm.vcf.gz && "
+    "src/vcf_intersect.py --inputs out/{wildcards.tumour}.strelka.somatic.snvs.af.norm.vcf.gz out/{wildcards.tumour}.mutect2.norm.vcf.gz > tmp/{wildcards.tumour}.intersect.unsorted.vcf && "
+    "src/vcf_intersect.py --inputs out/{wildcards.tumour}.strelka.somatic.indels.af.norm.vcf.gz out/{wildcards.tumour}.mutect2.norm.vcf.gz | grep -v '^#' >> tmp/{wildcards.tumour}.intersect.unsorted.vcf && "
+    "grep '^#' tmp/{wildcards.tumour}.intersect.unsorted.vcf > tmp/{wildcards.tumour}.intersect.vcf && "
+    "bedtools sort < tmp/{wildcards.tumour}.intersect.unsorted.vcf >> tmp/{wildcards.tumour}.intersect.vcf && "
+    "bgzip < tmp/{wildcards.tumour}.intersect.vcf > {output}"
+    ") 2>{log.stderr}"
 
 rule filter_intersected_somatic_callers:
   input:
@@ -874,6 +911,23 @@ rule filter_intersected_somatic_callers:
 #  shell:
 #    "{config[module_samtools]} && "
 #    "src/annotate_af.py {input} | bgzip >{output} 2>{log.stderr}"
+
+rule bias_filter_strelka_indels:
+  input:
+    reference=config["genome"],
+    bam="out/{tumour}.sorted.dups.bam",
+    vcf="out/{tumour}.strelka.somatic.indels.vcf.gz"
+  output:
+    "out/{tumour}.strelka.somatic.indels.bias.vcf.gz"
+  log:
+    stderr="log/{tumour}.bias_filter.indels.bias.err",
+    stdout="log/{tumour}.bias_filter.indels.bias.out"
+  shell:
+    "{config[module_htslib]} && "
+    "gunzip < {input.vcf} | egrep '(^#|PASS)' > tmp/{wildcards.tumour}_bias_filter_strelka.vcf && "
+    "python tools/DKFZBiasFilter/scripts/biasFilter.py --tempFolder tmp tmp/{wildcards.tumour}_bias_filter_strelka_indels.vcf {input.bam} {input.reference} tmp/{wildcards.tumour}_bias_filter_out_strelka_indels.vcf 2>{log.stderr} 1>{log.stdout} && "
+    "bgzip < tmp/{wildcards.tumour}_bias_filter_out_strelka_indels.vcf > {output} && "
+    "rm tmp/{wildcards.tumour}_bias_filter_strelka_indels.vcf tmp/{wildcards.tumour}_bias_filter_out_strelka_indels.vcf"
 
 rule bias_filter_strelka:
   input:
@@ -949,15 +1003,15 @@ rule mutational_signature:
   log:
     stderr="out/{tumour}.mutational_signature.stderr", # keep for now
   shell:
-    "(python tools/mutational_signature-0.2/count.py --genome {input.reference} --vcf {input.vcf} > out/{wildcards.tumour}.mutational_signature.counts && "
-    "python tools/mutational_signature-0.2/plot_counts.py out/{wildcards.tumour}.mutational_signature.png < out/{wildcards.tumour}.mutational_signature.counts && "
-    "python tools/mutational_signature-0.2/decompose.py --signatures tools/mutational_signature-0.2/signatures30.txt --counts out/{wildcards.tumour}.mutational_signature.counts > {output}) 2>{log.stderr}"
+    "(python tools/mutational_signature-0.2/decompose/count.py --genome {input.reference} --vcf {input.vcf} > out/{wildcards.tumour}.mutational_signature.counts && "
+    "python tools/mutational_signature-0.2/decompose/plot_counts.py out/{wildcards.tumour}.mutational_signature.png < out/{wildcards.tumour}.mutational_signature.counts && "
+    "python tools/mutational_signature-0.2/decompose/decompose.py --signatures tools/mutational_signature-0.2/signatures30.txt --counts out/{wildcards.tumour}.mutational_signature.counts > {output}) 2>{log.stderr}"
 
 rule combine_mutational_signatures:
   input:
     expand("out/{tumour}.mutational_signature.exposures", tumour=config['tumours']),
   output:
-    "out/mutational_signatures.combined"
+    "out/aggregate/mutational_signatures.combined"
   shell:
     "src/combine_tsv.py {input} | sed 's/^out\\/\\(.*\)\\.mutational_signature\\.exposures/\\1/' > {output}"
 
@@ -971,17 +1025,18 @@ rule mutational_signature_filtered:
   log:
     stderr="out/{tumour}.mutational_signature.stderr", # keep for now
   shell:
-    "(python tools/mutational_signature-0.2/count.py --genome {input.reference} --vcf {input.vcf} > out/{wildcards.tumour}.mutational_signature.filter.counts && "
-    "python tools/mutational_signature-0.2/plot_counts.py out/{wildcards.tumour}.mutational_signature.png < out/{wildcards.tumour}.mutational_signature.filter.counts && "
-    "python tools/mutational_signature-0.2/decompose.py --signatures tools/mutational_signature-0.2/signatures30.txt --counts out/{wildcards.tumour}.mutational_signature.filter.counts > {output}) 2>{log.stderr}"
+    "(python tools/mutational_signature-0.2/decompose/count.py --genome {input.reference} --vcf {input.vcf} > out/{wildcards.tumour}.mutational_signature.filter.counts && "
+    "python tools/mutational_signature-0.2/decompose/plot_counts.py out/{wildcards.tumour}.mutational_signature.png < out/{wildcards.tumour}.mutational_signature.filter.counts && "
+    "python tools/mutational_signature-0.2/decompose/decompose.py --signatures tools/mutational_signature-0.2/signatures30.txt --counts out/{wildcards.tumour}.mutational_signature.filter.counts > {output}) 2>{log.stderr}"
 
 rule combine_mutational_signatures_filtered:
   input:
     expand("out/{tumour}.mutational_signature.filter.exposures", tumour=config['tumours']),
   output:
-    "out/mutational_signatures.filter.combined"
+    "out/aggregate/mutational_signatures.filter.combined"
   shell:
-    "src/combine_tsv.py {input} | sed 's/^out\\/\\(.*\)\\.mutational_signature\\.filter\\.exposures/\\1/' >{output}"
+    "src/combine_tsv.py {input} | sed 's/^out\\/\\(.*\)\\.mutational_signature\\.filter\\.exposures/\\1/' >{output} && "
+    "python tools/mutational_signature-0.2/decompose/plot_components.py --threshold 0.05 --show_signature --target {output}.png --order 'Signature.1' 'Signature.2' 'Signature.3' 'Signature.4' 'Signature.5' 'Signature.6' 'Signature.7' 'Signature.8' 'Signature.9' 'Signature.10' 'Signature.11' 'Signature.12' 'Signature.13' 'Signature.14' 'Signature.15' 'Signature.16' 'Signature.17' 'Signature.18' 'Signature.19' 'Signature.20' 'Signature.21' 'Signature.22' 'Signature.23' 'Signature.24' 'Signature.25' 'Signature.26' 'Signature.27' 'Signature.28' 'Signature.29' 'Signature.30' --descriptions '5-methylcytosine deamination' 'APOBEC' 'double-strand break-repair failure' 'tobacco mutagens' '' 'defective mismatch repair' 'ultraviolet light exposure' '' '' 'POLE mutations' 'alkylating agents' '' 'APOBEC' '' 'defective mismatch repair' '' '' '' '' 'defective mismatch repair' '' '' '' 'aflatoxin exposure' '' 'defective mismatch repair' '' '' 'tobacco' '' < {output}"
 
 # copy number
 rule copy_number_varscan:
@@ -1018,11 +1073,23 @@ rule mutation_burden:
     vcfs=expand("out/{tumour}.intersect.filter.vcf.gz", tumour=config['tumours']),
     regions="reference/regions.bed"
   output:
-    "out/mutation_rate.tsv"
+    "out/aggregate/mutation_rate.tsv"
   log:
     stderr="log/mutation_rate.stderr"
   shell:
     "src/mutation_rate.py --verbose --vcfs {input.vcfs} --bed {input.regions} >{output} 2>{log.stderr}"
+
+# burden (currently only exonic snvs)
+rule msi_burden:
+  input:
+    vcfs=expand("out/{tumour}.intersect.filter.vcf.gz", tumour=config['tumours']),
+    regions="reference/msi.regions.bed"
+  output:
+    "out/aggregate/msi_burden.tsv"
+  log:
+    stderr="log/msi_burden.stderr"
+  shell:
+    "src/mutation_rate.py --verbose --vcfs {input.vcfs} --bed {input.regions} --indels_only >{output} 2>{log.stderr}"
 
 # loh
 rule loh:

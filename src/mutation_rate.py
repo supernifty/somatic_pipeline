@@ -14,11 +14,11 @@ import sys
 import cyvcf2
 import intervaltree
 
-def main(vcfs, bed, min_dp, min_af, min_qual):
+def main(vcfs, bed, min_dp, min_af, min_qual, indels):
   logging.info('parsing {}...'.format(bed))
   tree = {}
-  size = overlaps = skipped = 0
-  for idx, line in enumerate(open(bed, 'r')):
+  size = overlaps = skipped = included = 0
+  for line_count, line in enumerate(open(bed, 'r')):
     fields = line.strip('\n').split('\t')
     if len(fields) < 4:
       skipped += 1
@@ -34,6 +34,7 @@ def main(vcfs, bed, min_dp, min_af, min_qual):
     if len(overlap) == 0:
       size += f - s
       tree[chrom][s:f] = True
+      included += 1
     else:
       for item in overlap:
         new_begin = min(s, item.begin)
@@ -44,14 +45,14 @@ def main(vcfs, bed, min_dp, min_af, min_qual):
         size += (new_end - new_begin) - (f - s)
         s = new_begin
         f = new_end
-    if idx % 100000 == 0:
-      logging.debug('parsing {}: {} lines parsed. skipped {}. {} overlaps. size {}'.format(bed, idx, skipped, overlaps, size))
-  logging.info('parsing {}: done. lines skipped: {}. size: {}'.format(bed, skipped, size))
+    if line_count % 100000 == 0:
+      logging.debug('parsing {}: {} lines parsed. skipped {}. {} overlaps. size {}'.format(bed, line_count, skipped, overlaps, size))
+  logging.info('parsing {}: done. lines skipped: {}. size: {}. count: {}'.format(bed, skipped, size, included))
 
-  sys.stdout.write("Filename\tCount\tPerMB\n")
+  sys.stdout.write("Filename\tCount\tPerMB\tPerInterval\n")
   for vcf in vcfs:
     vcf_in = cyvcf2.VCF(vcf)
-    accept = reject_exon = reject_filter = 0
+    accept = reject_exon = reject_filter = reject_indel = 0
     for variant in vcf_in:
       if variant.QUAL is not None and variant.QUAL < min_qual:
         reject_filter += 1
@@ -68,6 +69,10 @@ def main(vcfs, bed, min_dp, min_af, min_qual):
       #if af < min_af:
       #  reject_filter += 1
       #  continue
+      if indels and len(variant.REF) != len(variant.ALT[0]):
+        reject_indel += 1
+        continue
+
       if variant.CHROM.startswith('chr'):
         chrom = variant.CHROM[3:]
       else:
@@ -78,14 +83,15 @@ def main(vcfs, bed, min_dp, min_af, min_qual):
           reject_exon += 1
         else:
           accept += 1
-    sys.stdout.write("{}\t{}\t{:.1f}\n".format(vcf, accept, accept / size * 1e6))
-    logging.info('included %i variants. rejected %i non-exonic %i filtered variants.', accept, reject_exon, reject_filter)
+    sys.stdout.write("{}\t{}\t{:.2f}\t{:.2f}\n".format(vcf, accept, accept / size * 1e6, accept / included))
+    logging.info('included %i variants. rejected %i non-exonic %i filtered %i non-indel variants.', accept, reject_exon, reject_filter, reject_indel)
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser(description='Calculate mutation rate')
   parser.add_argument('--vcfs', nargs='+', help='list of vcfs')
   parser.add_argument('--bed', required=True, help='filter')
   parser.add_argument('--verbose', action='store_true', help='more logging')
+  parser.add_argument('--indels_only', action='store_true', help='just indels')
   parser.add_argument('--min_dp', default=0, type=int, help='min dp')
   parser.add_argument('--min_af', default=0, type=float, help='min dp')
   parser.add_argument('--min_qual', default=0, type=float, help='min qual')
@@ -95,4 +101,4 @@ if __name__ == '__main__':
   else:
     logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s', level=logging.INFO)
 
-  main(args.vcfs, args.bed, args.min_dp, args.min_af, args.min_qual)
+  main(args.vcfs, args.bed, args.min_dp, args.min_af, args.min_qual, args.indels_only)

@@ -11,7 +11,7 @@ import numpy
 
 import cyvcf2
 
-def main(sample, af_threshold, dp_threshold):
+def main(sample, af_threshold, dp_threshold, info_af):
 
   logging.info('reading from stdin...')
 
@@ -35,11 +35,25 @@ def main(sample, af_threshold, dp_threshold):
       skipped_pass += 1
       continue
 
-    if variant.INFO["DP"] < dp_threshold: # somatic + germline
-      skipped_dp += 1
-      continue
+    if dp_threshold > 0:
+      try:
+        if variant.INFO["DP"] < dp_threshold: # somatic + germline
+          skipped_dp += 1
+          continue
+      except:
+        if variant.format("DP")[sample_id][0] < dp_threshold: # somatic
+          skipped_dp += 1
+          continue
 
-    af = variant.format("AF")[sample_id][0] 
+    if info_af:
+      try:
+        af = variant.INFO["AF"]
+      except:
+        skipped_af += 1
+        continue
+    else:
+      af = variant.format("AF")[sample_id][0] 
+
     if af < af_threshold:
       skipped_af += 1
       continue
@@ -54,6 +68,7 @@ if __name__ == '__main__':
   parser.add_argument('--sample', required=True,  help='sample name')
   parser.add_argument('--af', type=float, required=True,  help='minimum af')
   parser.add_argument('--dp', type=int, required=True,  help='minimum dp')
+  parser.add_argument('--info_af', action='store_true', help='use af from info')
   parser.add_argument('--verbose', action='store_true', help='more logging')
   args = parser.parse_args()
   if args.verbose:
@@ -62,4 +77,4 @@ if __name__ == '__main__':
     logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s', level=logging.INFO)
 
   # sample af vcf
-  main(args.sample, args.af, args.dp)
+  main(args.sample, args.af, args.dp, args.info_af)
