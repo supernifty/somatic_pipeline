@@ -1,5 +1,5 @@
 
-VERSION="0.2"
+VERSION="0.3alpha"
 
 configfile: "cfg/config.yaml"
 cluster = json.load(open("cfg/cluster.json"))
@@ -61,6 +61,8 @@ rule all:
     #expand("out/{tumour}.varscan.copynumber.deletions.bed", tumour=config['tumours']), # TODO fails on mini sample
     expand("out/{tumour}.platypus.somatic.vcf.gz", tumour=config['tumours']), # platypus somatic calls
     expand("out/{tumour}.loh.bed", tumour=config['tumours']), # loh regions
+    expand("out/{tumour}.strelka.somatic.af.png", tumour=config['tumours']), # plot strelka af
+    expand("out/{tumour}.mutect2.somatic.af.png", tumour=config['tumours']), # plot mutect2 af
 
     # combined results
     "out/aggregate/mutect2.filter.genes_of_interest.combined.tsv",
@@ -911,12 +913,27 @@ rule pass_filter_intersected_somatic_callers:
     "{config[module_htslib]} && "
     "gunzip < {input} | egrep '(^#|PASS)' | bgzip > {output}"
 
-rule intersect_somatic_callers:
+rule strelka_normalise:
   input:
     reference=config["genome"],
     mutect2="out/{tumour}.mutect2.filter.norm.vep.vcf.gz",
     strelka_snvs="out/{tumour}.strelka.somatic.snvs.af.vcf.gz",
     strelka_indels="out/{tumour}.strelka.somatic.indels.vcf.gz" 
+  output:
+    snvs_norm="out/{tumour}.strelka.somatic.snvs.af.norm.vcf.gz",
+    indels_norm="out/{tumour}.strelka.somatic.indels.norm.vcf.gz"
+  shell:
+    "{config[module_samtools]} && "
+    "{config[module_htslib]} && "
+    "tools/vt-0.577/vt decompose -s {input.strelka_snvs} | tools/vt-0.577/vt normalize -n -r {input.reference} - -o {output.snvs_norm} && "
+    "tools/vt-0.577/vt decompose -s {input.strelka_indels} | tools/vt-0.577/vt normalize -n -r {input.reference} - -o {output.indels_norm}"
+ 
+rule intersect_somatic_callers:
+  input:
+    reference=config["genome"],
+    mutect2="out/{tumour}.mutect2.filter.norm.vep.vcf.gz",
+    strelka_snvs="out/{tumour}.strelka.somatic.snvs.af.norm.vcf.gz",
+    strelka_indels="out/{tumour}.strelka.somatic.indels.norm.vcf.gz" 
   output:
     "out/{tumour}.intersect.vcf.gz"
   log:
@@ -925,8 +942,6 @@ rule intersect_somatic_callers:
     "({config[module_samtools]} && "
     "{config[module_htslib]} && "
     "{config[module_bedtools]} && "
-    "tools/vt-0.577/vt decompose -s {input.strelka_snvs} | tools/vt-0.577/vt normalize -n -r {input.reference} - -o out/{wildcards.tumour}.strelka.somatic.snvs.af.norm.vcf.gz && "
-    "tools/vt-0.577/vt decompose -s {input.strelka_indels} | tools/vt-0.577/vt normalize -n -r {input.reference} - -o out/{wildcards.tumour}.strelka.somatic.indels.norm.vcf.gz && "
     "src/vcf_intersect.py --inputs out/{wildcards.tumour}.strelka.somatic.snvs.af.norm.vcf.gz {input.mutect2} > tmp/{wildcards.tumour}.intersect.unsorted.vcf && "
     "src/vcf_intersect.py --inputs out/{wildcards.tumour}.strelka.somatic.indels.norm.vcf.gz {input.mutect2} | grep -v '^#' >> tmp/{wildcards.tumour}.intersect.unsorted.vcf && "
     "grep '^#' tmp/{wildcards.tumour}.intersect.unsorted.vcf > tmp/{wildcards.tumour}.intersect.vcf && "
@@ -1164,6 +1179,23 @@ rule msi_burden:
     stderr="log/msi_burden.stderr"
   shell:
     "src/mutation_rate.py --verbose --vcfs {input.vcfs} --bed {input.regions} --indels_only >{output} 2>{log.stderr}"
+
+# af distribution
+rule plot_af_strelka:
+  input:
+    "out/{tumour}.strelka.somatic.snvs.af.vcf.gz"
+  output:
+    "out/{tumour}.strelka.somatic.af.png"
+  shell:
+    "src/plot_af.py --log --sample TUMOR --target {output} --dp {config[dp_threshold]} --info_af < {input}"
+
+rule plot_af_mutect2:
+  input:
+    "out/{tumour}.mutect2.filter.norm.vep.vcf.gz"
+  output:
+    "out/{tumour}.mutect2.somatic.af.png"
+  shell:
+    "src/plot_af.py --log --sample {wildcards.tumour} --target {output} --dp {config[dp_threshold]} < {input}"
 
 # loh
 rule loh:
