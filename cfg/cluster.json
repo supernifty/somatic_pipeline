@@ -184,7 +184,7 @@
     "mutect2_somatic_chr": {
         "n": 2,
         "memory": 32768,
-        "time": "24:00:00"
+        "time": "32:00:00"
     },
 
     "sort": {

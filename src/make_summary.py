@@ -47,9 +47,14 @@ def main(samples):
         logging.warn('%i results not found for %s', found, sample)
 
   # write results
-  sys.stdout.write('{}\t{}\t{}\t{}\n'.format('Sample', 'Deamination', 'OxoG', 'Issues'))
+  sys.stdout.write('{}\t{}\t{}\t{}\n'.format('Sample', 'Deamination', 'OxoG', 'Assessment'))
   for sample in sorted(results):
-    sys.stdout.write('{}\t{}\t{}\t{}\n'.format(sample, results[sample]['Deamination'], results[sample]['OxoG'], ','.join(results[sample]['Issues'])))
+    if len(results[sample]['Issues']) > 0:
+      assessment = ','.join(results[sample]['Issues']) 
+    else:
+      assessment = 'OK'
+
+    sys.stdout.write('{}\t{}\t{}\t{}\n'.format(sample, results[sample]['Deamination'], results[sample]['OxoG'], assessment))
 
   logging.info('done. %i issues for %i samples', issues, len(results))
 

@@ -13,6 +13,9 @@ module_R: 'module load R/3.5.0-GCC-4.9.2'
 module_samtools: 'module load SAMtools/1.8-intel-2016.u3-HTSlib-1.8'
 module_network: 'module load web_proxy'
 
+# tool versions
+loh_version: 0.3
+
 # for intersected filtered
 af_threshold: 0.1
 dp_threshold: 50

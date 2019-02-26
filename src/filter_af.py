@@ -11,7 +11,7 @@ import numpy
 
 import cyvcf2
 
-def main(sample, af_threshold, dp_threshold, info_af):
+def main(sample, af_threshold, dp_threshold, info_af, pass_only):
 
   logging.info('reading from stdin...')
 
@@ -31,7 +31,7 @@ def main(sample, af_threshold, dp_threshold, info_af):
     if len(variant.ALT) > 1:
       logging.warn('variant %i is multi-allelic', variant_count + 1)
 
-    if variant.FILTER is not None and variant.FILTER != 'alleleBias': # PASS only, or alleleBias for platypus
+    if pass_only and variant.FILTER is not None and variant.FILTER != 'alleleBias': # PASS only, or alleleBias for platypus
       skipped_pass += 1
       continue
 
@@ -69,6 +69,7 @@ if __name__ == '__main__':
   parser.add_argument('--af', type=float, required=True,  help='minimum af')
   parser.add_argument('--dp', type=int, required=True,  help='minimum dp')
   parser.add_argument('--info_af', action='store_true', help='use af from info')
+  parser.add_argument('--pass_only', action='store_true', help='reject non-pass')
   parser.add_argument('--verbose', action='store_true', help='more logging')
   args = parser.parse_args()
   if args.verbose:
@@ -77,4 +78,4 @@ if __name__ == '__main__':
     logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s', level=logging.INFO)
 
   # sample af vcf
-  main(args.sample, args.af, args.dp, args.info_af)
+  main(args.sample, args.af, args.dp, args.info_af, args.pass_only)
