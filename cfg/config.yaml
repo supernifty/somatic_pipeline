@@ -9,7 +9,7 @@ module_htslib: 'module load HTSlib/1.8-intel-2017.u2'
 module_java: 'module load Java/1.8.0_152'
 module_pandoc: 'module load pandoc/2.0.3'
 module_python2: 'module load Python/2.7.13-intel-2017.u2'
-module_R: 'module load R/3.5.0-GCC-4.9.2'
+module_R: 'module load R/3.4.4-GCC-4.9.2'
 module_samtools: 'module load SAMtools/1.8-intel-2016.u3-HTSlib-1.8'
 module_network: 'module load web_proxy'
 

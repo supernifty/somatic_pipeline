@@ -44,12 +44,15 @@ rule all:
   input:
     expand("out/{tumour}.strelka.somatic.snvs.af.vep.vcf.gz", tumour=config['tumours']), # somatic snvs strelka
     expand("out/{tumour}.strelka.somatic.indels.vep.vcf.gz", tumour=config['tumours']), # somatic indels strelka
+    expand("out/{tumour}.strelka.somatic.snvs.af.pass.vcf.gz", tumour=config['tumours']), # somatic snvs strelka
+    expand("out/{tumour}.strelka.somatic.indels.pass.vcf.gz", tumour=config['tumours']), # somatic indels strelka
     expand("out/{germline}.strelka.germline.filter_gt.vep.vcf.gz", germline=germline_samples()), # germline strelka calls
     expand("out/{germline}.strelka.germline.filter_gt.vep.vcf.gz", germline=config['tumours']), # run the tumours as if they were germline
     expand("out/{sample}.oxo_metrics.txt", sample=config['samples']),
     expand("out/{sample}.artifact_metrics.txt.error_summary_metrics", sample=config['samples']),
     expand("out/{tumour}.strelka.somatic.snvs.bias.vcf.gz", tumour=config['tumours']),
     expand("out/{tumour}.mutect2.filter.bias.vcf.gz", tumour=config['tumours']), # somatic mutect2 with dkfz bias annotation
+    expand("out/{tumour}.mutect2.filter.norm.vep.pass.vcf.gz", tumour=config['tumours']), # somatic mutect2
     expand("out/fastqc/{sample}/completed", sample=config['samples']), # fastqc
     expand("out/{sample}.metrics.insertsize", sample=config['samples']),
     expand("out/{sample}.metrics.alignment", sample=config['samples']),
@@ -1037,7 +1040,7 @@ rule combine_mutect2_tsv:
 
 rule mutect2_tsv:
   input:
-    vcf="out/{tumour}.mutect2.filter.vep.vcf.gz"
+    vcf="out/{tumour}.mutect2.filter.norm.vep.vcf.gz"
   output:
     "out/{tumour}.mutect2.filter.vep.tsv"
   shell:
@@ -1055,7 +1058,7 @@ rule combine_genes_of_interest:
 # filter on genes of interest and convert to tsv
 rule filter_genes_of_interest_tumour:
   input:
-    vcf="out/{tumour}.mutect2.filter.vep.vcf.gz"
+    vcf="out/{tumour}.mutect2.filter.norm.vep.vcf.gz"
   output:
     "out/{tumour}.mutect2.filter.genes_of_interest.tsv"
   log:
