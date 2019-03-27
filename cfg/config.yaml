@@ -15,6 +15,7 @@ module_network: 'module load web_proxy'
 
 # tool versions
 loh_version: 0.3
+msisensor_version: 0.5
 
 # for intersected filtered
 af_threshold: 0.1

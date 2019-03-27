@@ -50,7 +50,7 @@ rule all:
     expand("out/{germline}.strelka.germline.filter_gt.vep.vcf.gz", germline=config['tumours']), # run the tumours as if they were germline
     expand("out/{sample}.oxo_metrics.txt", sample=config['samples']),
     expand("out/{sample}.artifact_metrics.txt.error_summary_metrics", sample=config['samples']),
-    expand("out/{tumour}.strelka.somatic.snvs.bias.vcf.gz", tumour=config['tumours']),
+    # -- disabled too slow expand("out/{tumour}.strelka.somatic.snvs.bias.vcf.gz", tumour=config['tumours']),
     expand("out/{tumour}.mutect2.filter.bias.vcf.gz", tumour=config['tumours']), # somatic mutect2 with dkfz bias annotation
     expand("out/{tumour}.mutect2.filter.norm.vep.pass.vcf.gz", tumour=config['tumours']), # somatic mutect2
     expand("out/fastqc/{sample}/completed", sample=config['samples']), # fastqc
@@ -67,6 +67,12 @@ rule all:
     expand("out/{tumour}.strelka.somatic.af.png", tumour=config['tumours']), # plot strelka af
     expand("out/{tumour}.mutect2.somatic.af.png", tumour=config['tumours']), # plot mutect2 af
 
+    # tumour purity
+    # -- not working expand("out/{tumour}.theta2.done", tumour=config['tumours']),
+
+    # msi
+    "out/aggregate/msisensor.tsv",
+
     # combined results
     "out/aggregate/mutect2.filter.genes_of_interest.combined.tsv",
     "out/aggregate/mutect2.filter.combined.tsv",
@@ -76,7 +82,7 @@ rule all:
     "out/aggregate/max_trimmed_coverage.tsv",
     "out/aggregate/ontarget.tsv",
     "out/aggregate/germline_joint.hc.normalized.vep.vcf.gz", # gatk calls for all germline samples
-    "out/aggregate/tumour_joint.hc.normalized.vep.vcf.gz", # gatk calls for all tumour samples (as germline)
+    # -- disabled "out/aggregate/tumour_joint.hc.normalized.vep.vcf.gz", # gatk calls for all tumour samples (as germline)
     "out/aggregate/qc.summary.tsv",
     "out/aggregate/multiqc.html", # overall general qc
     "out/aggregate/ontarget.png", # combined ontarget coverage plots
@@ -224,7 +230,7 @@ rule qc_verifybamid_tumour:
   log:
     stderr="log/{tumour}.verifybamid.stderr"
   shell:
-    "tools/verifyBamID_1.1.3/verifyBamID/bin/verifyBamID --vcf {input.vcf} --bam {input.bam} --bai {input.bai} --out out/{wildcards.tumour}.verifybamid --verbose 2>{log.stderr} && touch {output}"
+    "tools/verifyBamID_1.1.3/verifyBamID/bin/verifyBamID --noPhoneHome --vcf {input.vcf} --bam {input.bam} --bai {input.bai} --out out/{wildcards.tumour}.verifybamid --verbose 2>{log.stderr} && touch {output}"
 
 # verifybamid doesn't like strelka's germline output
 #rule qc_verifybamid_germline:
@@ -646,7 +652,7 @@ rule mutect2_sample_pon:
   input:
     reference=config["genome"],
     bam="out/{germline}.sorted.dups.bam",
-    regions="reference/regions.bed"
+    regions=config["regions"]
   output:
     "out/{germline}.mutect2.pon.vcf.gz",
   log:
@@ -674,7 +680,7 @@ rule mutect2_somatic_chr:
   input:
     reference=config["genome"],
     dbsnp="reference/gatk-4-bundle-b37/dbsnp_138.b37.vcf.bgz",
-    regions="reference/regions.bed",
+    regions=config["regions"],
     pon="out/mutect2.pon.vcf.gz",
     gnomad="reference/af-only-gnomad.raw.sites.b37.vcf.gz",
     bams=tumour_germline_dup_bams
@@ -995,6 +1001,7 @@ rule bias_filter_strelka_indels:
     "bgzip < tmp/{wildcards.tumour}_bias_filter_out_strelka_indels.vcf > {output} && "
     "rm tmp/{wildcards.tumour}_bias_filter_strelka_indels.vcf tmp/{wildcards.tumour}_bias_filter_out_strelka_indels.vcf"
 
+# TODO deprecated
 rule bias_filter_strelka:
   input:
     reference=config["genome"],
@@ -1163,7 +1170,7 @@ rule copy_number_varscan_post:
 rule mutation_burden:
   input:
     vcfs=expand("out/{tumour}.intersect.filter.pass.vcf.gz", tumour=config['tumours']),
-    regions="reference/regions.bed"
+    regions=config["regions"],
   output:
     "out/aggregate/mutation_rate.tsv"
   log:
@@ -1219,3 +1226,58 @@ rule loh:
     "tools/loh_caller-{config[loh_version]}/loh.py --germline NORMAL --tumour TUMOR --filtered_variants --min_dp_germline 10 --min_dp_tumour 20 --neutral --min_af 0.1 < {input.indels} > tmp/{params.tumour}.loh.indels.tsv && "
     "sort -k1,1 -k2,2n tmp/{params.tumour}.loh.snvs.tsv tmp/{params.tumour}.loh.indels.tsv > tmp/{params.tumour}.loh.tsv && "
     "tools/loh_caller-{config[loh_version]}/loh_merge.py --verbose --noheader --min_len 1000 --min_prop 0.1 --plot out/{params.tumour}.loh --regions {params.regions} --region_names {params.region_names} --region_padding {params.region_padding} --plot_chromosomes <tmp/{params.tumour}.loh.tsv >{output}) 2>{log.stderr}"
+
+rule msisensor_prep:
+  input:
+    reference=config["genome"]
+  output:
+    "out/msisensor.list"
+  log:
+    stderr="log/msisensor.list.log"
+  shell:
+    "tools/msisensor-{config[msisensor_version]}/binary/msisensor.linux scan -d {input.reference} -o {output}"
+
+rule msisensor:
+  input:
+    microsatellites="out/msisensor.list",
+    bed=config["regions"],
+    bams=tumour_germline_bams
+  output:
+    "out/{tumour}.msisensor.tsv"
+  log:
+    stderr="log/{tumour}.msisenser.stderr"
+  params:
+    tumour="{tumour}",
+  shell:
+    "tools/msisensor-{config[msisensor_version]}/binary/msisensor.linux msi -d {input.microsatellites} -n {input.bams[1]} -t {input.bams[0]} -e {input.bed} -o tmp/{params.tumour}.msisensor && "
+    "mv tmp/{params.tumour}.msisensor out/{params.tumour}.msisensor.tsv"
+
+rule msisensor_combine:
+  input:
+    expand("out/{tumour}.msisensor.tsv", tumour=config['tumours']),
+  output:
+    "out/aggregate/msisensor.tsv"
+  shell:
+    "src/combine_msisensor.py {input} > {output}"
+
+### not working
+# tumour purity - currently not working
+rule purity:
+  input:
+    reference=config["genome"],
+    bed=config["regions"],
+    bams=tumour_germline_bams
+  output:
+    "out/{tumour}.theta2.done"
+  log:
+    stderr="log/{tumour}.purity.stderr"
+  params:
+    tumour="{tumour}",
+  shell:
+    #"cnvkit.py batch {input.bams[0]} --normal {input.bams[1]} --targets {input.bed} --fasta {input.reference} --output-reference tmp/{params.tumour}.cnn --output-dir tmp/{params.tumour}.cnvkit --diagram && "
+    #"cnvkit.py export theta tmp/{params.tumour}.cnvkit/{params.tumour}.sorted.dups.cns -r tmp/{params.tumour}.cnn -o tmp/{params.tumour}.cnvkit.interval_count && "
+    "{config[module_python2]} && {config[module_samtools]} && "
+    "mkdir -p ./tmp/{params.tumour}.theta2 && "
+    "tools/theta2/bin/CreateExomeInput -s tmp/{params.tumour}.cnvkit.interval_count -t {input.bams[0]} -n {input.bams[1]} --FA {input.reference} --EXON_FILE tools/theta2/data/hg19.exons.bed --DIR ./tmp/{params.tumour}.theta2 --QUALITY 1 && "
+    "touch {output}"
+

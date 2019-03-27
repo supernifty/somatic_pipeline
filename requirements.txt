@@ -3,3 +3,4 @@ multiqc
 scipy
 cyvcf2
 pysam
+git+https://github.com/etal/cnvkit.git@v0.9.5
