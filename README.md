@@ -106,25 +106,6 @@ cd tools/verifyBamID_1.1.3
 make
 ```
 
-### mutational signature
-cd tools
-[ -e v0.2.tar.gz ] && rm v0.2.tar.gz
-wget https://github.com/supernifty/mutational_signature/archive/v0.2.tar.gz
-tar xvfz v0.2.tar.gz
-pip install -r mutational_signature-0.2/requirements.txt
-cd -
-
-### loh
-```
-cd tools
-[ -e v0.2.tar.gz ] && rm v0.2.tar.gz
-wget https://github.com/supernifty/loh_caller/archive/v0.2.tar.gz
-tar xvfz v0.2.tar.gz
-pip install -r loh_caller-0.2/requirements.txt
-cd -
-chmod +x tools/loh_caller-0.2/loh*.py
-```
-
 ### platypus
 * request from http://www.well.ox.ac.uk/platypus
 ```
@@ -166,22 +147,26 @@ biocLite("DNAcopy");
 #### Mutect2
 * out/{tumour}.mutect2.vcf.gz: output from mutect2
 * out/{tumour}.mutect2.filter.vcf.gz: application of mutect2 filter
-* out/{tumour}.mutect2.filter.bias.vcf.gz: PASS only, with DKFZ bias annotations (high confidence)
 * out/{tumour}.mutect2.filter.norm.vep.vcf.gz: annotated normalised version of mutect2.filter.vcf.gz
 * out/{tumour}.mutect2.filter.norm.vep.pass.vcf.gz: annotated normalised version of mutect2.filter.vcf.gz
 
 #### Strelka
-* out/{tumour}.strelka.somatic.snvs.vcf.gz out/{tumour}.strelka.somatic.indels.vcf.gz: output from strelka
-* out/{tumour}.strelka.somatic.snvs.bias.vcf.gz: PASS only, with DKFZ bias annotations (high confidence)
+* out/{tumour}.strelka.somatic.snvs.vcf.gz: output from strelka
 * out/{tumour}.strelka.somatic.snvs.af.vcf.gz: add AF annotation
-* out/{tumour}.strelka.somatic.snvs.af.pass.vcf.gz: pass filter
-* out/{tumour}.strelka.somatic.snvs.af.pass.norm.vcf.gz: normalize
+* out/{tumour}.strelka.somatic.snvs.af.norm.vcf.gz: normalised
+* out/{tumour}.strelka.somatic.snvs.af.norm.vep.vcf.gz: normalised and annotated
+* out/{tumour}.strelka.somatic.snvs.af.norm.vep.pass.vcf.gz: normalised, annotated, pass
+
+Indels
+* out/{tumour}.strelka.somatic.indels.vcf.gz: output from strelka
+* out/{tumour}.strelka.somatic.indels.norm.vcf.gz: normalised
+* out/{tumour}.strelka.somatic.indels.norm.vep.vcf.gz: normalised, annotated
+* out/{tumour}.strelka.somatic.indels.norm.vep.pass.vcf.gz: filtered on pass
 
 #### Intersection
 * out/{tumour}.intersect.vcf.gz: intersection of out/{tumour}.mutect2.filter.norm.vep.vcf.gz and out/{tumour}.strelka.somatic.snvs.af.norm.vcf.gz
-* out/{tumour}.intersect.filter.vcf.gz: filter on config AF and DP settings
 * out/{tumour}.intersect.pass.vcf.gz: intersected pass calls
-* out/{tumour}.intersect.filter.pass.vcf.gz: intersected filter on config AF and DP settings
+* out/{tumour}.intersect.pass.filter.pass.vcf.gz: intersected filter on config AF and DP settings
 
 ### Directories
 * cfg: configuration files

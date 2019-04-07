@@ -5,9 +5,9 @@ import sys
 
 # based on https://github.com/ding-lab/msisensor/issues/11
 CLASSES = (
-  (0, 10, 'MSI-L'),
-  (10, 30, 'MSS'),
-  (30, 100, 'MSI-H')
+  (0, 1, 'MSI-L'),
+  (1, 2, 'MSS'),
+  (2, 100, 'MSI-H')
 )
 
 writer = csv.DictWriter(sys.stdout, delimiter='\t', fieldnames=['Sample', 'Class', '%', 'Total_Number_of_Sites', 'Number_of_Somatic_Sites' ])
