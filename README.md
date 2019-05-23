@@ -146,13 +146,13 @@ biocLite("DNAcopy");
 
 #### Mutect2
 * out/{tumour}.mutect2.vcf.gz: output from mutect2
-* out/{tumour}.mutect2.filter.vcf.gz: application of mutect2 filter
+* out/{tumour}.mutect2.filter.vcf.gz: application of mutect2 filter and BAM_DEPTH annotation
 * out/{tumour}.mutect2.filter.norm.vep.vcf.gz: annotated normalised version of mutect2.filter.vcf.gz
 * out/{tumour}.mutect2.filter.norm.vep.pass.vcf.gz: annotated normalised version of mutect2.filter.vcf.gz
 
 #### Strelka
 * out/{tumour}.strelka.somatic.snvs.vcf.gz: output from strelka
-* out/{tumour}.strelka.somatic.snvs.af.vcf.gz: add AF annotation
+* out/{tumour}.strelka.somatic.snvs.af.vcf.gz: add AF and BAM_DEPTH annotation
 * out/{tumour}.strelka.somatic.snvs.af.norm.vcf.gz: normalised
 * out/{tumour}.strelka.somatic.snvs.af.norm.vep.vcf.gz: normalised and annotated
 * out/{tumour}.strelka.somatic.snvs.af.norm.vep.pass.vcf.gz: normalised, annotated, pass
@@ -167,6 +167,7 @@ Indels
 * out/{tumour}.intersect.vcf.gz: intersection of out/{tumour}.mutect2.filter.norm.vep.vcf.gz and out/{tumour}.strelka.somatic.snvs.af.norm.vcf.gz
 * out/{tumour}.intersect.pass.vcf.gz: intersected pass calls
 * out/{tumour}.intersect.pass.filter.pass.vcf.gz: intersected filter on config AF and DP settings
+* out/{tumour}.pass_one.vcf.gz: one of the two callers passes
 
 ### Directories
 * cfg: configuration files

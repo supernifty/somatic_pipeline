@@ -20,6 +20,7 @@ def main(sample, dp_threshold, target, info_af, log):
 
   vcf_in = cyvcf2.VCF("-")  
   ads = []
+  ads_nopass = []
 
   variant_count = 0
   skipped_pass = skipped_dp = skipped_af = allowed = 0
@@ -32,30 +33,36 @@ def main(sample, dp_threshold, target, info_af, log):
     if len(variant.ALT) > 1:
       logging.warn('variant %i is multi-allelic', variant_count + 1)
 
-    if variant.FILTER is not None and variant.FILTER != 'alleleBias': # PASS only, or alleleBias for platypus
-      skipped_pass += 1
-      continue
+    is_pass = variant.FILTER is None or variant.FILTER == 'alleleBias'
+    if is_pass:
+      target_ad = ads
+    else:
+      target_ad = ads_nopass
+      skipped_pass += 1 # but we'll still record
 
     if variant.INFO["DP"] < dp_threshold: # somatic + germline
       skipped_dp += 1
       continue
 
     if info_af:
-      ads.append(variant.INFO["AF"])
+      target_ad.append(variant.INFO["AF"])
     else:
       ad = variant.format("AD")[sample_id]
       ref = ad[0]
       alt = ad[1]
       if ref + alt > 0:
-        ads.append(alt / (ref + alt))
+        target_ad.append(alt / (ref + alt))
       else:
-        ads.append(0)
+        target_ad.append(0)
     allowed += 1
 
-  logging.info('processed %i variants. no pass %i. low af %i. low dp %i. allowed %i AF range %.2f to %.2f', variant_count + 1, skipped_pass, skipped_af, skipped_af, allowed, min(ads), max(ads))
+  min_ads = min(ads + ads_nopass)
+  max_ads = max(ads + ads_nopass)
+  logging.info('processed %i variants. no pass %i. low af %i. low dp %i. allowed %i AF range %.2f to %.2f', variant_count + 1, skipped_pass, skipped_af, skipped_af, allowed, min_ads, max_ads)
 
   # now plot histogram
-  plt.hist(ads, bins=int(max(ads) * 100))
+  plt.hist([ads, ads_nopass], label=('PASS', 'No PASS'), bins=int(max(ads + ads_nopass) * 100), stacked=True)
+  plt.legend()
   if log:
     plt.yscale('log')
   plt.grid(which='both')

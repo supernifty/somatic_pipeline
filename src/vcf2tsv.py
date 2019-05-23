@@ -88,7 +88,7 @@ def vcf2tsv(query_vcf, skip_info_data, skip_genotype_data, keep_rejected_calls, 
       if not rec.QUAL is None:
          rec_qual = str("{0:.2f}".format(rec.QUAL))
       rec_filter = str(rec.FILTER)
-      if rec.FILTER is None:
+      if rec.FILTER is None or rec.FILTER == ['str_contraction']: # keep STR variants
          rec_filter = 'PASS'
      
       pos = int(rec.start) + 1

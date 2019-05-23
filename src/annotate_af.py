@@ -36,8 +36,13 @@ def main(sample, vcf_fn):
     if len(variant.ALT) > 1:
       logging.warn('%s: variant %i is multi-allelic', vcf_fn, variant_count + 1)
 
-    refCount = tier1RefCounts[sample_id][0]
-    altCount = tier1AltCounts[sample_id][0]
+    # just tier 1
+    #refCount = tier1RefCounts[sample_id][0]
+    #altCount = tier1AltCounts[sample_id][0]
+
+    # both tiers
+    refCount = sum(tier1RefCounts[sample_id])
+    altCount = sum(tier1AltCounts[sample_id])
 
     if refCount + altCount == 0:
       af = 0.0

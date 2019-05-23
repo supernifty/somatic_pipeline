@@ -8,7 +8,7 @@ import csv
 import logging
 import sys
 
-def main(column, values, delimiter='\t'):
+def main(column, values, contains, delimiter='\t'):
 
   logging.info('reading from stdin...')
 
@@ -23,7 +23,14 @@ def main(column, values, delimiter='\t'):
       writer.writerow(row)
       continue
 
-    if row[column_idx] in values:
+    if contains:
+      for value in values:
+        if value in row[column_idx]:
+          writer.writerow(row)
+          accepted += 1
+          break
+
+    elif row[column_idx] in values:
       writer.writerow(row)
       accepted += 1
 
@@ -36,6 +43,7 @@ if __name__ == '__main__':
   parser = argparse.ArgumentParser(description='Assess MSI')
   parser.add_argument('--column', required=True, help='column to filter')
   parser.add_argument('--values', required=True, nargs='+', help='values to match')
+  parser.add_argument('--contains', action='store_true', help='can contain value')
   parser.add_argument('--verbose', action='store_true', help='more logging')
   args = parser.parse_args()
   if args.verbose:
@@ -43,4 +51,4 @@ if __name__ == '__main__':
   else:
     logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s', level=logging.INFO)
   # sample af vcf
-  main(args.column, args.values)
+  main(args.column, args.values, args.contains)

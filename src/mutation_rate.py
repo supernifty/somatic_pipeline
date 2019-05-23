@@ -14,7 +14,7 @@ import sys
 import cyvcf2
 import intervaltree
 
-def main(vcfs, bed, min_dp, min_af, min_qual, indels):
+def main(vcfs, bed, min_dp, min_af, min_qual, indels, sample_name):
   logging.info('parsing {}...'.format(bed))
   tree = {}
   size = overlaps = skipped = included = 0
@@ -53,6 +53,12 @@ def main(vcfs, bed, min_dp, min_af, min_qual, indels):
   for vcf in vcfs:
     vcf_in = cyvcf2.VCF(vcf)
     accept = reject_exon = reject_filter = reject_indel = 0
+    sample = vcf.split('/')[-1].split('.')[0]
+    if sample_name is None:
+      sample_id = vcf_in.samples.index(sample)
+    else:
+      sample_id = vcf_in.samples.index(sample_name)
+
     for variant in vcf_in:
       if variant.QUAL is not None and variant.QUAL < min_qual:
         reject_filter += 1
@@ -60,16 +66,19 @@ def main(vcfs, bed, min_dp, min_af, min_qual, indels):
       #if variant.FILTER is not None:
       #  reject_filter += 1
       #  continue
-      #dp = variant.format('DP')[0][0]
-      #if dp < min_dp:
-      #  reject_filter += 1
-      #  continue
-      #ad = variant.format('AD')[0][0]
-      #af = ad / dp
-      #if af < min_af:
-      #  reject_filter += 1
-      #  continue
-      if indels and len(variant.REF) != len(variant.ALT[0]):
+      if min_dp is not None and min_dp > 0:
+        dp = sum(variant.format('AD')[sample_id])
+        if dp < min_dp:
+          reject_filter += 1
+          continue
+      if min_af is not None and min_af > 0:
+        #ad = variant.format('AD')[0][0]
+        #af = ad / dp
+        af = variant.format('AF')[sample_id]
+        if af < min_af:
+          reject_filter += 1
+          continue
+      if indels and len(variant.REF) == len(variant.ALT[0]):
         reject_indel += 1
         continue
 
@@ -90,6 +99,7 @@ if __name__ == '__main__':
   parser = argparse.ArgumentParser(description='Calculate mutation rate')
   parser.add_argument('--vcfs', nargs='+', help='list of vcfs')
   parser.add_argument('--bed', required=True, help='filter')
+  parser.add_argument('--sample_name', required=False, help='vcf sample name')
   parser.add_argument('--verbose', action='store_true', help='more logging')
   parser.add_argument('--indels_only', action='store_true', help='just indels')
   parser.add_argument('--min_dp', default=0, type=int, help='min dp')
@@ -101,4 +111,4 @@ if __name__ == '__main__':
   else:
     logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s', level=logging.INFO)
 
-  main(args.vcfs, args.bed, args.min_dp, args.min_af, args.min_qual, args.indels_only)
+  main(args.vcfs, args.bed, args.min_dp, args.min_af, args.min_qual, args.indels_only, args.sample_name)
