@@ -25,6 +25,13 @@
         "memory": 4096,
         "time": "8:00:00"
     },
+
+    "annotate_strelka_signatures": {
+        "n": 1,
+        "memory": 4096,
+        "time": "1:00:00"
+    },
+
     "annotate_vep_somatic_snvs": {
         "n": 4,
         "memory": 49152,
@@ -61,6 +68,12 @@
         "time": "32:00:00"
     },
 
+    "cnv_caller": {
+        "n": 1,
+        "memory": 8192,
+        "time": "8:00:00"
+    },
+
     "copy_number_varscan": {
         "n": 2,
         "memory": 8192,
@@ -72,6 +85,12 @@
         "memory": 4096,
         "time": "2:00:00"
     },
+
+    "filter_context_artefact": {
+        "n": 1,
+        "memory": 4096,
+        "time": "0:30:00"
+    }, 
 
     "gatk_duplicates": {
         "n": 4,
@@ -157,13 +176,37 @@
         "time": "2:00:00"
     },
 
-    "mutational_signature_filtered": {
+    "mutation_burden_artefact_filter": {
+        "n": 1,
+        "memory": 4096,
+        "time": "2:00:00"
+    },
+
+    "mutational_signature_filtered_v3_id": {
+         "n": 1,
+         "memory": 8192,
+         "time": "1:00:00"
+    },
+
+    "mutational_signature_filtered_v3": {
          "n": 1,
          "memory": 8192,
          "time": "1:00:00"
      },
 
-     "mutational_signature": {
+     "mutational_signature_v3": {
+         "n": 1,
+         "memory": 8192,
+         "time": "1:00:00"
+     },
+
+    "mutational_signature_filtered_v2": {
+         "n": 1,
+         "memory": 8192,
+         "time": "1:00:00"
+     },
+
+     "mutational_signature_v2": {
          "n": 1,
          "memory": 8192,
          "time": "1:00:00"
@@ -203,6 +246,12 @@
         "n": 2,
         "memory": 4096,
         "time": "2:00:00"
+    },
+
+    "plot_af_strelka_signatures": {
+        "n": 1,
+        "memory": 4096,
+        "time": "1:00:00"
     },
 
     "sort": {

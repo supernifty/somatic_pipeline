@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 '''
-  calculate af for strelka
+  very simple filter
 '''
 
 import argparse
@@ -61,7 +61,7 @@ def main(sample, af_threshold, dp_threshold, info_af, pass_only):
     allowed += 1
     sys.stdout.write(str(variant))
 
-  logging.info('processed %i variants. no pass %i. low af %i. low dp %i. allowed %i', variant_count + 1, skipped_pass, skipped_af, skipped_af, allowed)
+  logging.info('processed %i variants. no pass %i. low af %i. low dp %i. allowed %i', variant_count + 1, skipped_pass, skipped_af, skipped_dp, allowed)
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser(description='Filter VCF')

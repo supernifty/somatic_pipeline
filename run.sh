@@ -4,7 +4,7 @@ set -o errexit
 
 # run on the cluster
 MAXJOBS=512
-PREFIX="tl"
+PREFIX="tl-$(basename `pwd`)"
 
 echo "cleaning up..."
 
@@ -12,11 +12,14 @@ echo "cleaning up..."
 [ -e log ] && mv log log.bck
 
 mkdir -p log
+touch log/dummy
 rm log/*
 
 mkdir -p tmp
+touch tmp/dummy
 rm -r tmp/*
 
+chmod -R +w out
 mkdir -p out/aggregate
 
 # dry
@@ -39,4 +42,4 @@ echo "finished at $(date)"
 
 # mark as read only
 echo "marking read only at $(date)"
-chmod -R -r out
+chmod -R -w out

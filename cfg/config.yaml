@@ -15,8 +15,9 @@ module_network: 'module load web_proxy'
 
 # tool versions
 loh_version: 0.3
+cnv_version: 0.1
 msisensor_version: 0.5
-signature_version: 0.4
+signature_version: 0.6
 
 # for intersected filtered
 af_threshold: 0.1
@@ -36,6 +37,7 @@ tumours:
 validation:
   S1: [['CHR', 'POS']]
 
+# TODO add NRAS
 genes_of_interest:
   - MUTYH
   - MAP3K21

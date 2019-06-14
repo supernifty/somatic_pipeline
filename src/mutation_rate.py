@@ -14,7 +14,7 @@ import sys
 import cyvcf2
 import intervaltree
 
-def main(vcfs, bed, min_dp, min_af, min_qual, indels, sample_name):
+def main(vcfs, bed, min_dp, min_af, min_qual, indels, sample_name, signature_artefacts, signature_artefact_penalty):
   logging.info('parsing {}...'.format(bed))
   tree = {}
   size = overlaps = skipped = included = 0
@@ -48,6 +48,14 @@ def main(vcfs, bed, min_dp, min_af, min_qual, indels, sample_name):
     if line_count % 100000 == 0:
       logging.debug('parsing {}: {} lines parsed. skipped {}. {} overlaps. size {}'.format(bed, line_count, skipped, overlaps, size))
   logging.info('parsing {}: done. lines skipped: {}. size: {}. count: {}'.format(bed, skipped, size, included))
+
+  ok_signatures = set()
+  if signature_artefacts is not None:
+    for line in open(signature_artefacts, 'r'):
+      fields = line.strip('\n').split('\t')
+      if 'artefact' not in fields[1].lower():
+        ok_signatures.add(fields[0])
+    logging.debug('%i good signatures', len(ok_signatures))
 
   sys.stdout.write("Filename\tCount\tPerMB\tPerInterval\n")
   for vcf in vcfs:
@@ -91,8 +99,23 @@ def main(vcfs, bed, min_dp, min_af, min_qual, indels, sample_name):
         if len(overlap) == 0:
           reject_exon += 1
         else:
-          accept += 1
-    sys.stdout.write("{}\t{}\t{:.2f}\t{:.2f}\n".format(vcf, accept, accept / size * 1e6, accept / included))
+          if len(ok_signatures) > 0:
+            try:
+              likelihoods = variant.INFO["signature_likelihood"]
+            except:
+              logging.warn('Signature likelihood not found. Is the VCF annotated?')
+              continue
+            # SBS1/0.016,...
+            items = [sigvalue.split('/') for sigvalue in likelihoods.split(',')]
+            logging.debug('%s -> %s', likelihoods, items)
+            likely_ok = sum([float(item[1]) for item in items if item[0] in ok_signatures])
+            logging.debug('%s -> %.2f ok', likelihoods, likely_ok)
+            # adjust with penalty - a penalty less than one increases likely_ok
+            likely_ok = 1 - ((1-likely_ok) * signature_artefact_penalty)
+            accept += likely_ok
+          else:
+            accept += 1
+    sys.stdout.write("{}\t{}\t{:.2f}\t{:.2f}\n".format(vcf, int(accept), accept / size * 1e6, accept / included))
     logging.info('included %i variants. rejected %i non-exonic %i filtered %i non-indel variants.', accept, reject_exon, reject_filter, reject_indel)
 
 if __name__ == '__main__':
@@ -101,9 +124,11 @@ if __name__ == '__main__':
   parser.add_argument('--bed', required=True, help='filter')
   parser.add_argument('--sample_name', required=False, help='vcf sample name')
   parser.add_argument('--verbose', action='store_true', help='more logging')
+  parser.add_argument('--signature_artefacts', help='filter signature artefacts with file')
+  parser.add_argument('--signature_artefact_penalty', default=1.0, type=float, help='how likely to filter artefact')
   parser.add_argument('--indels_only', action='store_true', help='just indels')
   parser.add_argument('--min_dp', default=0, type=int, help='min dp')
-  parser.add_argument('--min_af', default=0, type=float, help='min dp')
+  parser.add_argument('--min_af', default=0, type=float, help='min af')
   parser.add_argument('--min_qual', default=0, type=float, help='min qual')
   args = parser.parse_args()
   if args.verbose:
@@ -111,4 +136,4 @@ if __name__ == '__main__':
   else:
     logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s', level=logging.INFO)
 
-  main(args.vcfs, args.bed, args.min_dp, args.min_af, args.min_qual, args.indels_only, args.sample_name)
+  main(args.vcfs, args.bed, args.min_dp, args.min_af, args.min_qual, args.indels_only, args.sample_name, args.signature_artefacts, args.signature_artefact_penalty)
