@@ -1,0 +1,275 @@
+__default__:
+  account: punim0567
+  memory: 1024
+  n: 1
+  nodes: 1
+  partition: physical,snowy
+  time: 00:15:00
+align:
+  memory: 12288
+  n: 4
+  time: '32:00:00'
+align_unpaired:
+  memory: 12288
+  n: 4
+  time: '24:00:00'
+annotate_af_somatic:
+  memory: 16536
+  n: 2
+  time: '16:00:00'
+annotate_strelka_signatures:
+  memory: 4096
+  n: 1
+  time: '1:00:00'
+annotate_vep_germline:
+  memory: 49152
+  n: 4
+  time: '32:00:00'
+annotate_vep_hc:
+  memory: 49152
+  n: 4
+  time: '32:00:00'
+annotate_vep_hc_tumours:
+  memory: 49152
+  n: 4
+  time: '32:00:00'
+annotate_vep_mutect2:
+  memory: 49152
+  n: 4
+  time: '32:00:00'
+annotate_vep_somatic_indels:
+  memory: 49152
+  n: 4
+  time: '32:00:00'
+annotate_vep_somatic_snvs:
+  memory: 49152
+  n: 4
+  time: '32:00:00'
+bias_filter_mutect2:
+  memory: 4096
+  n: 1
+  time: '6:00:00'
+bias_filter_strelka:
+  memory: 4096
+  n: 1
+  time: '6:00:00'
+bias_filter_strelka_indels:
+  memory: 4096
+  n: 1
+  time: '6:00:00'
+cnv_caller:
+  memory: 8192
+  n: 1
+  time: '8:00:00'
+copy_number_varscan:
+  memory: 8192
+  n: 2
+  time: '24:00:00'
+copy_number_varscan_post:
+  memory: 4096
+  n: 2
+  time: '2:00:00'
+fastqc:
+  memory: 2048
+  n: 1
+  time: '6:00:00'
+filter_context_artefact:
+  memory: 4096
+  n: 1
+  time: 0:30:00
+gatk_duplicates:
+  memory: 32768
+  n: 4
+  time: '24:00:00'
+gatk_haplotype_caller:
+  memory: 32768
+  n: 4
+  time: '32:00:00'
+gatk_joint_genotype:
+  memory: 32768
+  n: 2
+  time: '24:00:00'
+gatk_joint_genotype_tumours:
+  memory: 32768
+  n: 2
+  time: '24:00:00'
+gatk_post_genotype:
+  memory: 32768
+  n: 2
+  time: '24:00:00'
+gatk_post_genotype_tumours:
+  memory: 32768
+  n: 2
+  time: '24:00:00'
+intersect_somatic_callers:
+  memory: 8192
+  n: 1
+  time: '1:00:00'
+loh:
+  memory: 8192
+  n: 1
+  time: '1:00:00'
+make_intervals:
+  memory: 8192
+  n: 1
+  time: '1:00:00'
+make_sequence_dict:
+  memory: 8192
+  n: 1
+  time: '1:00:00'
+merge_bams:
+  memory: 8192
+  n: 1
+  time: '8:00:00'
+msisensor:
+  memory: 8192
+  n: 1
+  time: '4:00:00'
+msisensor_prep:
+  memory: 16384
+  n: 1
+  time: '2:00:00'
+multiqc:
+  memory: 4096
+  n: 1
+  time: '4:00:00'
+mutation_burden:
+  memory: 4096
+  n: 1
+  time: '2:00:00'
+mutation_burden_artefact_filter:
+  memory: 4096
+  n: 1
+  time: '2:00:00'
+mutational_signature_filtered_v2:
+  memory: 8192
+  n: 1
+  time: '1:00:00'
+mutational_signature_filtered_v3:
+  memory: 8192
+  n: 1
+  time: '1:00:00'
+mutational_signature_filtered_v3_id:
+  memory: 8192
+  n: 1
+  time: '1:00:00'
+mutational_signature_v2:
+  memory: 8192
+  n: 1
+  time: '1:00:00'
+mutational_signature_v3:
+  memory: 8192
+  n: 1
+  time: '1:00:00'
+mutect2_filter:
+  memory: 16384
+  n: 2
+  time: '12:00:00'
+mutect2_pon:
+  memory: 16384
+  n: 2
+  time: '8:00:00'
+mutect2_sample_pon:
+  memory: 16384
+  n: 4
+  time: '48:00:00'
+mutect2_somatic:
+  memory: 16384
+  n: 2
+  time: '12:00:00'
+mutect2_somatic_chr:
+  memory: 32768
+  n: 2
+  time: '40:00:00'
+pass_one_somatic_callers:
+  memory: 4096
+  n: 2
+  time: '2:00:00'
+platypus_somatic:
+  memory: 16384
+  n: 4
+  time: '8:00:00'
+plot_af_strelka_signatures:
+  memory: 4096
+  n: 1
+  time: '1:00:00'
+purity:
+  memory: 8192
+  n: 2
+  time: '4:00:00'
+qc_alignment:
+  memory: 16384
+  n: 1
+  time: '6:00:00'
+qc_conpair:
+  memory: 16384
+  n: 1
+  time: '8:00:00'
+qc_depth_of_coverage:
+  memory: 16384
+  n: 1
+  time: '30:00:00'
+qc_insertsize:
+  memory: 16384
+  n: 1
+  time: '6:00:00'
+qc_max_coverage:
+  memory: 4096
+  n: 1
+  time: '2:00:00'
+qc_max_trimmed_coverage:
+  memory: 4096
+  n: 1
+  time: '2:00:00'
+qc_on_target_coverage:
+  memory: 8192
+  n: 3
+  time: '4:00:00'
+qc_on_target_coverage_hist:
+  memory: 8192
+  n: 4
+  time: '4:00:00'
+qc_on_target_coverage_hist_dedup:
+  memory: 16384
+  n: 4
+  time: '4:00:00'
+qc_oxidative_artifacts:
+  memory: 16384
+  n: 1
+  time: '6:00:00'
+qc_papillon:
+  memory: 8192
+  n: 1
+  time: '8:00:00'
+qc_sequencing_artifacts:
+  memory: 16384
+  n: 1
+  time: '6:00:00'
+qc_target:
+  memory: 16384
+  n: 2
+  time: '4:00:00'
+qc_verifybamid_germline:
+  memory: 8192
+  n: 1
+  time: '8:00:00'
+qc_verifybamid_tumour:
+  memory: 8192
+  n: 1
+  time: '8:00:00'
+sort:
+  memory: 16384
+  n: 4
+  time: '32:00:00'
+strelka_germline:
+  memory: 16384
+  n: 8
+  time: '16:00:00'
+strelka_somatic:
+  memory: 16384
+  n: 4
+  time: '16:00:00'
+trim:
+  memory: 16384
+  n: 4
+  time: '10:00:00'

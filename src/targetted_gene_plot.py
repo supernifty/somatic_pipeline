@@ -135,12 +135,12 @@ def annotate_heatmap(im, data=None, valfmt="{x:.2f}",
 
 def main(target):
   logging.info('reading from stdin...')
-  header = sys.stdin.readline().strip('\n').split('\t')
+  header = sys.stdin.readline().strip('\r\n').split('\t')
   gene_names = header[1:]
   sample_names = []
   results = []
   for line in sys.stdin:
-    fields = line.strip('\n').split('\t')
+    fields = line.strip('\r\n').split('\t')
     if len(fields) <= 1:
       break
     sample_names.append(fields[0])

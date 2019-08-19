@@ -86,7 +86,7 @@ def main(vcfs, bed, min_dp, min_af, min_qual, indels, sample_name, signature_art
         if af < min_af:
           reject_filter += 1
           continue
-      if indels and len(variant.REF) == len(variant.ALT[0]):
+      if indels and len(variant.REF) == len(variant.ALT[0]): # just indels and it's a snv
         reject_indel += 1
         continue
 

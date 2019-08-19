@@ -3,23 +3,28 @@
 # usage:
 # python data.py < data.tsv
 
+import argparse
 import glob
+import logging
 import os
 import os.path
 import sys
 
 def run(cmd):
-  sys.stderr.write('{}...\n'.format(cmd))
+  logging.info('{}...\n'.format(cmd))
   result = os.system(cmd)
   if result != 0:
-    sys.stderr.write('ERROR executing {}'.format(cmd))
+    logging.warn('ERROR executing {}'.format(cmd))
     sys.exit(result)
-  sys.stderr.write('{}: done\n'.format(cmd))
+  logging.info('{}: done\n'.format(cmd))
 
 def main(source, dest):
+  logging.info('reading from stdin...')
   for line in sys.stdin:
     fields = line.strip('\n').split('\t') # A08978_25945    0151010101_BC
-    for f in glob.glob('{source}/{prefix}_*'.format(source=source, prefix=fields[0])):
+    files = '{source}/{prefix}_*'.format(source=source, prefix=fields[0])
+    logging.debug('looking for %s', files)
+    for f in glob.glob(files):
       target=os.path.basename(f).replace(fields[0], fields[1])
       run("ln -s {source_file} {dest}/{target}".format(source_file=f, dest=dest, target=target))
 
@@ -33,4 +38,4 @@ if __name__ == '__main__':
     logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s', level=logging.DEBUG)
   else:
     logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s', level=logging.INFO)
-  main(source, dest)
+  main(args.source_dir, args.target_dir)

@@ -45,6 +45,14 @@ def main(directories, phenotype):
     # mutational_signatures_v3_sbs.filter.combined.tsv
     # mutational_signatures_v3_id_strelka.filter.combined.tsv
 
+    # targetted gene summary
+    #fn = os.path.join(directory, 'out', 'aggregate', 'targetted_gene_summary.tsv')
+    #if not os.path.isfile(fn):
+    #  logging.info('skipping %s', directory)
+    #else: 
+    #  for row in csv.DictReader(open(fn, 'r'), delimiter='\t'):
+
+
     # signatures - v2
     fn = os.path.join(directory, 'out', 'aggregate', 'mutational_signatures_v2.filter.combined.tsv')
     if not os.path.isfile(fn):

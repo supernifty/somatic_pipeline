@@ -16,7 +16,15 @@ ORDER=('HIGH_transcript_ablation', 'HIGH_splice_acceptor_variant', 'HIGH_splice_
 
 #IDS=['0'..'9'] + ['a'..'z'] + ['A'..'Z']
 
-def main(vcfs, lohs, genes, loci, plot):
+def add_change(variant, change, gene, candidate, results, sample):
+  result = results[sample]
+  if gene not in result:
+    result[gene] = {}
+  if candidate not in result[gene]:
+    result[gene][candidate] = list()
+  result[gene][candidate].append(change)
+ 
+def main(vcfs, lohs, genes, loci, plot, multisample):
   logging.info('starting...')
 
   results = collections.defaultdict(dict)
@@ -26,13 +34,16 @@ def main(vcfs, lohs, genes, loci, plot):
 
   for vcf in vcfs:
     logging.info('processing %s...', vcf)
-    sample = vcf.split('/')[-1].split('.')[0]
-    result = results[sample] # dict
+    if not multisample:
+      sample = vcf.split('/')[-1].split('.')[0]
     
     vcf_in = cyvcf2.VCF(vcf)
     for variant in vcf_in:
-      # assume vep format is Consequence|IMPACT|Codons|Amino_acids|Gene|SYMBOL|Feature|EXON|PolyPhen|SIFT|Protein_position|BIOTYPE|HGVSc|HGVSp|cDNA_position|CDS_position|HGVSc|HGVSp|cDNA_position|CDS_position|gnomAD_AF|gnomAD_AFR_AF|gnomAD_AMR_AF|gnomAD_ASJ_AF|gnomAD_EAS_AF|gnomAD_FIN_AF|gnomAD_NFE_AF|gnomAD_OTH_AF|gnomAD_SAS_AF|MaxEntScan_alt|MaxEntScan_diff|MaxEntScan_ref|PICK
-      veps = variant.INFO['CSQ'].split(',')
+      try:
+        # assume vep format is Consequence|IMPACT|Codons|Amino_acids|Gene|SYMBOL|Feature|EXON|PolyPhen|SIFT|Protein_position|BIOTYPE|HGVSc|HGVSp|cDNA_position|CDS_position|HGVSc|HGVSp|cDNA_position|CDS_position|gnomAD_AF|gnomAD_AFR_AF|gnomAD_AMR_AF|gnomAD_ASJ_AF|gnomAD_EAS_AF|gnomAD_FIN_AF|gnomAD_NFE_AF|gnomAD_OTH_AF|gnomAD_SAS_AF|MaxEntScan_alt|MaxEntScan_diff|MaxEntScan_ref|PICK
+        veps = variant.INFO['CSQ'].split(',')
+      except KeyError:
+        continue
       # find PICK=1
       for vep in veps:
         fields = vep.split('|')
@@ -54,33 +65,37 @@ def main(vcfs, lohs, genes, loci, plot):
         #if candidate not in ORDER:
         #  logging.warn('unexpected candidate: %s', candidate)
         if impact == 'HIGH' or 'damaging' in polyphen or 'deleterious' in sift: # include
-          if gene not in result:
-            result[gene] = {}
-          if candidate not in result[gene]:
-            result[gene][candidate] = list()
           change = '{}:{} {}>{}'.format(variant.CHROM, variant.POS, variant.REF, variant.ALT[0])
-          result[gene][candidate].append(change)
-          # keep track of found variants
+          if multisample:
+            gt_types = variant.gt_types
+            for sample, gt in zip(vcf_in.samples, gt_types):
+              if gt != 0: # real variant
+                add_change(variant, change, gene, candidate, results, sample)
+          else:
+            add_change(variant, change, gene, candidate, results, sample)
+
+         # keep track of found variants
           if change not in variants:
             variants[change] = '{}\t{}\t{}'.format(gene, fields[12], fields[13])
 
-  for loh in lohs:
-    logging.info('processing %s...', loh)
-    sample = loh.split('/')[-1].split('.')[0]
-    result = results[sample] # dict
-    for line in open(loh, 'r'):
-      fields = line.strip('\n').split('\t')
-      chrom, start, finish = fields[0], int(fields[1]), int(fields[2]) # loh bed
-      # find matching loci
-      for idx, locus in enumerate(loci): # check each gene
-        locus_chrom, rest = locus.split(':')
-        locus_start, locus_finish = [int(x) for x in rest.split('-')]
-        if locus_chrom == chrom and finish > locus_start and start < locus_finish:
-          if genes[idx] not in result:
-            result[genes[idx]] = {}
-          if 'LOH' not in result[genes[idx]]:
-            result[genes[idx]]['LOH'] = list()
-          results[sample][genes[idx]]['LOH'].append('1')
+  if lohs is not None:
+    for loh in lohs:
+      logging.info('processing %s...', loh)
+      sample = loh.split('/')[-1].split('.')[0]
+      result = results[sample] # dict
+      for line in open(loh, 'r'):
+        fields = line.strip('\n').split('\t')
+        chrom, start, finish = fields[0], int(fields[1]), int(fields[2]) # loh bed
+        # find matching loci
+        for idx, locus in enumerate(loci): # check each gene
+          locus_chrom, rest = locus.split(':')
+          locus_start, locus_finish = [int(x) for x in rest.split('-')]
+          if locus_chrom == chrom and finish > locus_start and start < locus_finish:
+            if genes[idx] not in result:
+              result[genes[idx]] = {}
+            if 'LOH' not in result[genes[idx]]:
+              result[genes[idx]]['LOH'] = list()
+            results[sample][genes[idx]]['LOH'].append('1')
 
   # print results
   sys.stdout.write('Sample\t{}\n'.format('\t'.join(sorted(genes))))
@@ -107,10 +122,11 @@ def main(vcfs, lohs, genes, loci, plot):
 if __name__ == '__main__':
   parser = argparse.ArgumentParser(description='Assess MSI')
   parser.add_argument('--vcfs', required=True, nargs='+', help='tumour vcf')
-  parser.add_argument('--lohs', required=True, nargs='+', help='tumour vcf')
+  parser.add_argument('--lohs', required=False, nargs='+', help='tumour vcf')
   parser.add_argument('--genes', required=True, nargs='+', help='tumour vcf')
   parser.add_argument('--loci', required=True, nargs='+', help='tumour vcf')
   parser.add_argument('--plot', required=False, help='tumour vcf')
+  parser.add_argument('--multisample', action='store_true', help='sample names from vcf')
   parser.add_argument('--verbose', action='store_true', help='more logging')
   args = parser.parse_args()
   if args.verbose:
@@ -118,5 +134,5 @@ if __name__ == '__main__':
   else:
     logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s', level=logging.INFO)
 
-  main(args.vcfs, args.lohs, args.genes, args.loci, args.plot)
+  main(args.vcfs, args.lohs, args.genes, args.loci, args.plot, args.multisample)
 

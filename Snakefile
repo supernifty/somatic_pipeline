@@ -2,7 +2,9 @@
 VERSION="0.3alpha1"
 
 configfile: "cfg/config.yaml"
-cluster = json.load(open("cfg/cluster.json"))
+
+import yaml
+cluster = yaml.load(open("cfg/cluster.yaml"))
 
 # NOTE: no mitochondria MT because they aren't in our exome
 GATK_CHROMOSOMES=('1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22', 'X', 'Y')
@@ -47,15 +49,18 @@ rule all:
     expand("out/{tumour}.strelka.somatic.indels.norm.vep.pass.af.filter.vcf.gz", tumour=config['tumours']), # somatic indels strelka
     expand("out/{germline}.strelka.germline.filter_gt.vep.vcf.gz", germline=germline_samples()), # germline strelka calls
     # -- disabled for now expand("out/{germline}.strelka.germline.filter_gt.vep.vcf.gz", germline=config['tumours']), # run the tumours as if they were germline
+
     expand("out/{sample}.oxo_metrics.txt", sample=config['samples']),
     expand("out/{sample}.artifact_metrics.txt.error_summary_metrics", sample=config['samples']),
     # -- disabled too slow expand("out/{tumour}.strelka.somatic.snvs.bias.vcf.gz", tumour=config['tumours']),
     # -- disabled expand("out/{tumour}.mutect2.filter.bias.vcf.gz", tumour=config['tumours']), # somatic mutect2 with dkfz bias annotation
+
     expand("out/{tumour}.mutect2.filter.norm.vep.pass.vcf.gz", tumour=config['tumours']), # somatic mutect2
     expand("out/fastqc/{sample}/completed", sample=config['samples']), # fastqc
     expand("out/{sample}.metrics.insertsize", sample=config['samples']),
     expand("out/{sample}.metrics.alignment", sample=config['samples']),
     expand("out/{sample}.metrics.target", sample=config['samples']),
+
     # -- issues expand("out/{tumour}.verifybamid.somatic.completed", tumour=config['tumours']),
     expand("out/{tumour}.mutect2.filter.norm.vep.vcf.gz", tumour=config['tumours']),
     expand("out/{tumour}.intersect.pass.filter.vcf.gz", tumour=config['tumours']), # somatic combination of strelka and mutect2, with filter
@@ -69,6 +74,7 @@ rule all:
     expand("out/{tumour}.strelka.somatic.pass.signatures.af.png", tumour=config['tumours']), # plot strelka af
     expand("out/{tumour}.mutect2.somatic.af.png", tumour=config['tumours']), # plot mutect2 af
     expand("out/{tumour}.intersect.pass.filter.signatures.vcf.gz", tumour=config['tumours']), # annotated outputs with signatures
+    expand("out/{tumour}.strelka.somatic.mutational_signature_v3_sbs.png", tumour=config['tumours']), # signature profile with signature allocation
 
     expand("out/{sample}.mini.bam", sample=config['samples']), 
 
@@ -99,12 +105,15 @@ rule all:
     "out/aggregate/ontarget.png", # combined ontarget coverage plots
     "out/aggregate/ontarget_tumour.png", # somatic ontarget coverage plots
     "out/aggregate/ontarget_germline.png", # germline ontarget coverage plots
+    "out/aggregate/ontarget_tumour.dedup.png",
     "out/aggregate/mutation_rate.tsv",
     "out/aggregate/mutation_rate.artefact_filter.tsv",
     "out/aggregate/mutation_rate.high_af.tsv",
     "out/aggregate/mutation_rate.low_af.tsv",
     "out/aggregate/msi_burden.tsv",
-    "out/aggregate/targetted_gene_summary.tsv",
+    "out/aggregate/targetted_gene_summary.somatic.tsv",
+    "out/aggregate/targetted_gene_summary.germline.tsv",
+    "out/aggregate/gene_coverage.tsv",
     "out/aggregate/final.html",
 
 ### aggregate ###
@@ -301,8 +310,22 @@ rule qc_on_target_coverage_hist:
     hist="out/{sample}.ontarget.hist",
   shell:
     "{config[module_bedtools]} && "
-    #"bedtools sort -g reference/genome.lengths -i {input.bed} | bedtools merge -i - | bedtools coverage -sorted -hist -b {input.bam} -a stdin -g reference/genome.lengths | grep ^all > {output.hist}" # 2.27
     "bedtools sort -faidx reference/genome.lengths -i {input.bed} | bedtools merge -i - | bedtools coverage -sorted -hist -b {input.bam} -a stdin -g reference/genome.lengths | grep ^all > {output.hist}"
+
+rule qc_on_target_coverage_hist_dedup:
+  input:
+    bed=config["regions"],
+    bam="out/{sample}.sorted.dups.bam"
+  output:
+    hist="out/{sample}.ontarget.dedup.hist",
+  shell:
+    "{config[module_samtools]} && "
+    "{config[module_bedtools]} && "
+    "samtools view -uF 0x400 {input.bam} > tmp/{wildcards.sample}.dedup.bam && "
+    "bedtools sort -faidx reference/genome.lengths -i {input.bed} | bedtools merge -i - > tmp/{wildcards.sample}.qc_on_target_coverage_hist_dedup.bed && "
+    "bedtools coverage -sorted -hist -b tmp/{wildcards.sample}.dedup.bam -a tmp/{wildcards.sample}.qc_on_target_coverage_hist_dedup.bed -g reference/genome.lengths > tmp/{wildcards.sample}.qc_on_target_coverage_hist_dedup.hist && "
+    "grep ^all tmp/{wildcards.sample}.qc_on_target_coverage_hist_dedup.hist > {output.hist} && "
+    "rm tmp/{wildcards.sample}.qc_on_target_coverage_hist_dedup.bed tmp/{wildcards.sample}.dedup.bam"
 
 rule qc_on_target_coverage:
   input:
@@ -315,6 +338,20 @@ rule qc_on_target_coverage:
     "{config[module_bedtools]} && "
     #"bedtools sort -g reference/genome.lengths -i {input.bed} | bedtools merge -i - | bedtools coverage -sorted -a stdin -b {input.bam} -d -g reference/genome.lengths | cut -f5 | src/stats.py > {output.summary}" # 2.27
     "bedtools sort -faidx reference/genome.lengths -i {input.bed} | bedtools merge -i - | bedtools coverage -sorted -a stdin -b {input.bam} -d -g reference/genome.lengths | cut -f5 | src/stats.py > {output.summary}"
+
+rule qc_on_target_coverage_plot_dedup:
+  input:
+    samples=expand("out/{sample}.ontarget.dedup.hist", sample=config['samples']),
+    germline=expand("out/{germline}.ontarget.dedup.hist", germline=germline_samples()),
+    tumour=expand("out/{tumour}.ontarget.dedup.hist", tumour=config['tumours'])
+  output:
+    samples="out/aggregate/ontarget.dedup.png",
+    germline="out/aggregate/ontarget_germline.dedup.png",
+    tumour="out/aggregate/ontarget_tumour.dedup.png"
+  shell:
+    "src/plot_coverage.py --target {output.samples} --files {input.samples} --max 10000 && "
+    "src/plot_coverage.py --target {output.germline} --files {input.germline} --max 10000 && "
+    "src/plot_coverage.py --target {output.tumour} --files {input.tumour} --max 10000"
 
 rule qc_on_target_coverage_plot:
   input:
@@ -348,6 +385,24 @@ rule qc_on_target_coverage_combined:
   shell:
     "echo \"Filename	n	Mean	Min	Max	Total\" >{output} && "
     "for f in {input}; do echo \"$f	$(tail -1 $f)\" >> {output}; done"
+
+rule qc_papillon:
+  input:
+    bams=expand("out/{sample}.sorted.dups.bam", sample=config['samples']),
+    tumours=expand("out/{tumour}.sorted.dups.bam", tumour=config['tumours']),
+    germlines=expand("out/{germline}.sorted.dups.bam", germline=germline_samples())
+  output:
+    all="out/aggregate/gene_coverage.tsv",
+    tumour="out/aggregate/gene_coverage.tumour.tsv",
+    germline="out/aggregate/gene_coverage.germline.tsv"
+  log:
+    stderr="log/papillon.stderr"
+  params:
+    gene_list=' '.join(config["genes_of_interest"])
+  shell:
+    "(tools/papillon-{config[papillon_version]}/papillon/papillon.py --stat median --bed {config[refseq_bed]} --bams {input.bams} --genes {params.gene_list} --plot out/aggregate/gene_coverage.median --exon_plots >{output.all} && "
+    "tools/papillon-{config[papillon_version]}/papillon/papillon.py --stat median --bed {config[refseq_bed]} --bams {input.tumours} --genes {params.gene_list} --plot out/aggregate/gene_coverage.tumour.median >{output.tumour} && "
+    "tools/papillon-{config[papillon_version]}/papillon/papillon.py --stat median --bed {config[refseq_bed]} --bams {input.germlines} --genes {params.gene_list} --plot out/aggregate/gene_coverage.germline.median >{output.germline}) 2>{log.stderr}"
 
 ### alignment ###
 rule trim:
@@ -902,6 +957,7 @@ rule pass_mutect2:
     "{config[module_htslib]} && "
     "gunzip < {input} | egrep '(^#|PASS)' | bgzip > {output}"
 
+# TODO LowDepth fix
 rule pass_strelka_indels:
   input:
     "out/{tumour}.strelka.somatic.indels.norm.vep.vcf.gz",
@@ -909,8 +965,9 @@ rule pass_strelka_indels:
     "out/{tumour}.strelka.somatic.indels.norm.vep.pass.vcf.gz",
   shell:
     "{config[module_htslib]} && "
-    "gunzip < {input} | egrep '(^#|PASS)' | bgzip > {output}"
+    "gunzip < {input} | egrep '(^#|PASS|	LowDepth	)' | bgzip > {output}"
 
+# TODO LowDepth fix
 rule pass_strelka_snvs:
   input:
     "out/{tumour}.strelka.somatic.snvs.af.norm.vep.vcf.gz",
@@ -918,7 +975,7 @@ rule pass_strelka_snvs:
     "out/{tumour}.strelka.somatic.snvs.af.norm.vep.pass.vcf.gz",
   shell:
     "{config[module_htslib]} && "
-    "gunzip < {input} | egrep '(^#|PASS)' | bgzip > {output}"
+    "gunzip < {input} | egrep '(^#|PASS|	LowDepth	)' | bgzip > {output}"
 
 rule annotate_vep_germline:
   input:
@@ -963,8 +1020,8 @@ rule intersect_somatic_callers:
     "({config[module_samtools]} && "
     "{config[module_htslib]} && "
     "{config[module_bedtools]} && "
-    "src/vcf_intersect.py --allowed_filters str_contraction --inputs {input.strelka_snvs} {input.mutect2} > tmp/{wildcards.tumour}.intersect.unsorted.vcf && "
-    "src/vcf_intersect.py --allowed_filters str_contraction --inputs {input.strelka_indels} {input.mutect2} | sed -n '/^#/!p' >> tmp/{wildcards.tumour}.intersect.unsorted.vcf && "
+    "src/vcf_intersect.py --allowed_filters str_contraction LowDepth --inputs {input.strelka_snvs} {input.mutect2} > tmp/{wildcards.tumour}.intersect.unsorted.vcf && "
+    "src/vcf_intersect.py --allowed_filters str_contraction LowDepth --inputs {input.strelka_indels} {input.mutect2} | sed -n '/^#/!p' >> tmp/{wildcards.tumour}.intersect.unsorted.vcf && "
     "grep '^#' tmp/{wildcards.tumour}.intersect.unsorted.vcf > tmp/{wildcards.tumour}.intersect.vcf && "
     "bedtools sort -faidx reference/genome.lengths < tmp/{wildcards.tumour}.intersect.unsorted.vcf >> tmp/{wildcards.tumour}.intersect.vcf && "
     "bgzip < tmp/{wildcards.tumour}.intersect.vcf > {output}"
@@ -984,8 +1041,8 @@ rule pass_one_somatic_callers:
     "({config[module_samtools]} && "
     "{config[module_htslib]} && "
     "{config[module_bedtools]} && "
-    "src/vcf_intersect.py --allowed_filters str_contraction --inputs {input.strelka_snvs} {input.mutect2} --pass_one > tmp/{wildcards.tumour}.pass_one.unsorted.vcf && " # snvs vs mutect
-    "src/vcf_intersect.py --allowed_filters str_contraction --inputs {input.strelka_indels} {input.mutect2} --pass_one | sed -n '/^#/!p' >> tmp/{wildcards.tumour}.pass_one.unsorted.vcf && " # indels vs mutect
+    "src/vcf_intersect.py --allowed_filters str_contraction LowDepth --inputs {input.strelka_snvs} {input.mutect2} --pass_one > tmp/{wildcards.tumour}.pass_one.unsorted.vcf && " # snvs vs mutect
+    "src/vcf_intersect.py --allowed_filters str_contraction LowDepth --inputs {input.strelka_indels} {input.mutect2} --pass_one | sed -n '/^#/!p' >> tmp/{wildcards.tumour}.pass_one.unsorted.vcf && " # indels vs mutect
     "grep '^#' tmp/{wildcards.tumour}.pass_one.unsorted.vcf > tmp/{wildcards.tumour}.pass_one.vcf && " # header
     "bedtools sort -faidx reference/genome.lengths < tmp/{wildcards.tumour}.pass_one.unsorted.vcf >> tmp/{wildcards.tumour}.pass_one.vcf && "
     "bgzip < tmp/{wildcards.tumour}.pass_one.vcf > {output}"
@@ -1005,8 +1062,8 @@ rule intersect_pass_somatic_callers:
     "({config[module_samtools]} && "
     "{config[module_htslib]} && "
     "{config[module_bedtools]} && "
-    "src/vcf_intersect.py --allowed_filters str_contraction --inputs {input.strelka_snvs} {input.mutect2} > tmp/{wildcards.tumour}.intersect.unsorted.pass.vcf && " # snvs vs mutect
-    "src/vcf_intersect.py --allowed_filters str_contraction --inputs {input.strelka_indels} {input.mutect2} | sed -n '/^#/!p' >> tmp/{wildcards.tumour}.intersect.unsorted.pass.vcf && " # indels vs mutect
+    "src/vcf_intersect.py --allowed_filters str_contraction LowDepth --inputs {input.strelka_snvs} {input.mutect2} > tmp/{wildcards.tumour}.intersect.unsorted.pass.vcf && " # snvs vs mutect
+    "src/vcf_intersect.py --allowed_filters str_contraction LowDepth --inputs {input.strelka_indels} {input.mutect2} | sed -n '/^#/!p' >> tmp/{wildcards.tumour}.intersect.unsorted.pass.vcf && " # indels vs mutect
     "grep '^#' tmp/{wildcards.tumour}.intersect.unsorted.pass.vcf > tmp/{wildcards.tumour}.intersect.pass.vcf && " # header
     "bedtools sort -faidx reference/genome.lengths < tmp/{wildcards.tumour}.intersect.unsorted.pass.vcf >> tmp/{wildcards.tumour}.intersect.pass.vcf && "
     "bgzip < tmp/{wildcards.tumour}.intersect.pass.vcf > {output}"
@@ -1369,7 +1426,7 @@ rule plot_af_strelka:
   output:
     "out/{tumour}.strelka.somatic.af.png"
   shell:
-    "src/plot_af.py --log --sample TUMOR --target {output} --dp {config[dp_threshold]} --info_af --title 'Variant count as a function of somatic allele fraction for {tumour}' < {input}"
+    "src/plot_af.py --log --sample TUMOR --target {output} --dp {config[dp_threshold]} --info_af --title 'Variant count as a function of somatic allele fraction for {wildcards.tumour}' < {input}"
 
 # af distribution
 
@@ -1379,11 +1436,12 @@ rule annotate_strelka_signatures:
     vcf="out/{tumour}.strelka.somatic.snvs.af.vcf.gz",
     exposures="out/{tumour}.mutational_signature_v3_sbs.filter.exposures"
   output:
-    vcf="out/{tumour}.strelka.somatic.snvs.af.signatures.vcf.gz"
+    vcf="out/{tumour}.strelka.somatic.snvs.af.signatures.vcf.gz",
+    plot="out/{tumour}.strelka.somatic.mutational_signature_v3_sbs.png"
   shell:
     "{config[module_htslib]} && "
     "python tools/mutational_signature-{config[signature_version]}/mutational_signature/annotate_context.py --genome {input.reference} --vcf {input.vcf} > out/{wildcards.tumour}.somatic.snvs.af.contexts.vcf.gz && "
-    "python tools/mutational_signature-{config[signature_version]}/mutational_signature/assign_signatures.py --definition tools/mutational_signature-{config[signature_version]}/data/signatures_cosmic_v3_sbs.txt --signatures {input.exposures} --vcf out/{wildcards.tumour}.somatic.snvs.af.contexts.vcf.gz --threshold 0.01 > {output.vcf}"
+    "python tools/mutational_signature-{config[signature_version]}/mutational_signature/assign_signatures.py --definition tools/mutational_signature-{config[signature_version]}/data/signatures_cosmic_v3_sbs.txt --signatures {input.exposures} --vcf out/{wildcards.tumour}.somatic.snvs.af.contexts.vcf.gz --threshold 0.01 --plot {output.plot} > {output.vcf}"
   
 rule plot_af_strelka_signatures:
   input:
@@ -1414,7 +1472,8 @@ rule loh:
     snvs="out/{tumour}.strelka.somatic.snvs.af.norm.vep.vcf.gz", # loh requires strelka for now
     indels="out/{tumour}.strelka.somatic.indels.norm.vep.vcf.gz"
   output:
-    "out/{tumour}.loh.bed"
+    tsv="out/{tumour}.loh.tsv",
+    bed="out/{tumour}.loh.bed"
   log:
     stderr="log/{tumour}.loh.stderr"
   params:
@@ -1425,8 +1484,8 @@ rule loh:
   shell:
     "(tools/loh_caller-{config[loh_version]}/loh.py --germline NORMAL --tumour TUMOR --filtered_variants --min_dp_germline 10 --min_dp_tumour 20 --neutral --min_af 0.1 < {input.snvs} > tmp/{params.tumour}.loh.snvs.tsv && "
     "tools/loh_caller-{config[loh_version]}/loh.py --germline NORMAL --tumour TUMOR --filtered_variants --min_dp_germline 10 --min_dp_tumour 20 --neutral --min_af 0.1 < {input.indels} > tmp/{params.tumour}.loh.indels.tsv && "
-    "sort -k1,1 -k2,2n tmp/{params.tumour}.loh.snvs.tsv tmp/{params.tumour}.loh.indels.tsv > tmp/{params.tumour}.loh.tsv && "
-    "tools/loh_caller-{config[loh_version]}/loh_merge.py --verbose --noheader --min_len 1000 --min_prop 0.1 --plot out/{params.tumour}.loh --regions {params.regions} --region_names {params.region_names} --region_padding {params.region_padding} --plot_chromosomes <tmp/{params.tumour}.loh.tsv >{output}) 2>{log.stderr}"
+    "sort -k1,1 -k2,2n tmp/{params.tumour}.loh.snvs.tsv tmp/{params.tumour}.loh.indels.tsv > {output.tsv} && "
+    "tools/loh_caller-{config[loh_version]}/loh_merge.py --verbose --noheader --min_len 1000 --min_prop 0.1 --plot out/{params.tumour}.loh --regions {params.regions} --region_names {params.region_names} --region_padding {params.region_padding} --plot_chromosomes <{output.tsv} >{output.bed}) 2>{log.stderr}"
 
 #####################
 # cnv
@@ -1436,14 +1495,32 @@ rule cnv_caller:
     bed=config["regions"]
 
   output:
+    "out/{tumour}.cnv.calls.tsv"
+
+  log:
+    "log/{tumour}.cnv.calls.log"
+
+  shell:
+    "tools/cnv_caller-{config[cnv_version]}/cnv_caller/call.py --verbose --tumour {input.bams[0]} --normal {input.bams[1]} --bed {input.bed} > {output}"
+
+# cnv
+rule cnv_summary:
+  input:
+    "out/{tumour}.cnv.calls.tsv"
+
+  output:
     "out/{tumour}.cnv.tsv"
 
   log:
     "log/{tumour}.cnv.log"
 
+  params:
+    regions=' '.join(config["regions_of_interest"]),
+    region_names=' '.join(config["genes_of_interest"]),
+    region_padding=' '.join([str(x) for x in config["cnv_region_padding"]])
+
   shell:
-    "tools/cnv_caller-{config[cnv_version]}/cnv_caller/call.py --verbose --tumour {input.bams[0]} --normal {input.bams[1]} --bed {input.bed} > out/{wildcards.tumour}.cnv.calls.tsv && "
-    "tools/cnv_caller-{config[cnv_version]}/cnv_caller/group.py --verbose --plot out/{wildcards.tumour}.cnv < out/{wildcards.tumour}.cnv.calls.tsv > {output}"
+    "tools/cnv_caller-{config[cnv_version]}/cnv_caller/group.py --plot out/{wildcards.tumour}.cnv --regions {params.regions} --region_names {params.region_names} --region_padding {params.region_padding} <{input} >{output} 2>{log}"
 
 rule msisensor_prep:
   input:
@@ -1546,17 +1623,32 @@ rule minibam:
     "samtools view -h -b {input.bam} {config[regions_of_interest]} > {output} && "
     "samtools index {output}"
 
-rule variant_summary:
+# somatic
+rule somatic_variant_summary:
   input:
     vcfs1=expand("out/{tumour}.intersect.pass.filter.vcf.gz", tumour=config['tumours']),
     vcfs2=expand("out/{tumour}.strelka.somatic.indels.norm.vep.pass.vcf.gz", tumour=config['tumours']),
     lohs=expand("out/{tumour}.loh.bed", tumour=config['tumours'])
 
   output:
-    tsv="out/aggregate/targetted_gene_summary.tsv",
-    png="out/aggregate/targetted_gene_summary.png"
+    tsv="out/aggregate/targetted_gene_summary.somatic.tsv",
+    png="out/aggregate/targetted_gene_summary.somatic.png"
 
   shell:
     "src/targetted_gene_summary.py --vcfs {input.vcfs1} {input.vcfs2} --lohs {input.lohs} --genes {config[genes_of_interest]} --loci {config[regions_of_interest]} > {output.tsv} && "
+    "src/targetted_gene_plot.py --target {output.png} < {output.tsv}"
+
+
+# somatic
+rule germline_variant_summary:
+  input:
+    vcf="out/aggregate/germline_joint.hc.normalized.vep.vcf.gz"
+
+  output:
+    tsv="out/aggregate/targetted_gene_summary.germline.tsv",
+    png="out/aggregate/targetted_gene_summary.germline.png"
+
+  shell:
+    "src/targetted_gene_summary.py --vcfs {input.vcf} --genes {config[genes_of_interest]} --loci {config[regions_of_interest]} --multisample > {output.tsv} && "
     "src/targetted_gene_plot.py --target {output.png} < {output.tsv}"
 
