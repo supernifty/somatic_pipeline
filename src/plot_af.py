@@ -89,13 +89,15 @@ def main(sample, dp_threshold, target, info_af, log, filter, just_pass, use_like
       items = [sigvalue.split('/') for sigvalue in likelihoods.split(',')]
       guess = random.random()
       start = 0.0
+      sig = None
       for item in items:
         if start < guess < start + float(item[1]):
           sig = item[0]
           break
         start += float(item[1])
       if is_pass or not just_pass:
-        sig_ads[sig].append(value)
+        if sig is not None:
+          sig_ads[sig].append(value)
 
   min_ads = min(ads + ads_nopass)
   max_ads = max(ads + ads_nopass)

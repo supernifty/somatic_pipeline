@@ -34,7 +34,7 @@ def main(target, bedfiles, max_cov):
     ys = []
     cumulative = 1.0
     for line in open(bedfile, 'r'):
-      fields = line.strip('\n').split('\t')
+      fields = line.strip('\n').split('\t') # all coverage number_of_positions_with_this_coverage total_bed_size percent
       x = float(fields[1])
       if x > max_cov:
         break

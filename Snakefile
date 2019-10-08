@@ -91,6 +91,8 @@ rule all:
     "out/aggregate/mutational_signatures_v2.filter.combined.tsv",
     "out/aggregate/mutational_signatures_v3_sbs.filter.combined.tsv",
     "out/aggregate/mutational_signatures_v3_dbs.filter.combined.tsv",
+    "out/aggregate/mutational_signatures_v3_sbs_strand.filter.combined.tsv",
+    "out/aggregate/mutational_signatures_v3_sbs_strelka_strand.filter.combined.tsv",
     "out/aggregate/mutational_signatures_v3_dbs.combined.tsv",
     "out/aggregate/mutational_signatures_v3_id.combined.tsv",
     "out/aggregate/mutational_signatures_v3_id_strelka.filter.combined.tsv",
@@ -114,6 +116,7 @@ rule all:
     "out/aggregate/targetted_gene_summary.somatic.tsv",
     "out/aggregate/targetted_gene_summary.germline.tsv",
     "out/aggregate/gene_coverage.tsv",
+    "out/aggregate/gene_coverage_min.tumour.tsv",
     "out/aggregate/final.html",
 
 ### aggregate ###
@@ -385,6 +388,22 @@ rule qc_on_target_coverage_combined:
   shell:
     "echo \"Filename	n	Mean	Min	Max	Total\" >{output} && "
     "for f in {input}; do echo \"$f	$(tail -1 $f)\" >> {output}; done"
+
+rule qc_papillon_min:
+  input:
+    bams=expand("out/{sample}.sorted.dups.bam", sample=config['samples']),
+    tumours=expand("out/{tumour}.sorted.dups.bam", tumour=config['tumours']),
+    germlines=expand("out/{germline}.sorted.dups.bam", germline=germline_samples())
+  output:
+    tumour="out/aggregate/gene_coverage_min.tumour.tsv",
+    germline="out/aggregate/gene_coverage_min.germline.tsv"
+  log:
+    stderr="log/papillon_min.stderr"
+  params:
+    gene_list=' '.join(config["genes_of_interest"])
+  shell:
+    "(tools/papillon-{config[papillon_version]}/papillon/papillon.py --max_coverage {config[papillon_max_coverage_tumour]} --stat min --bed {config[refseq_bed]} --bams {input.tumours} --genes {params.gene_list} --plot out/aggregate/gene_coverage.tumour.min --padding {config[papillon_padding]} --exon_plots >{output.tumour} && "
+    "tools/papillon-{config[papillon_version]}/papillon/papillon.py --max_coverage {config[papillon_max_coverage_germline]} --stat min --bed {config[refseq_bed]} --bams {input.germlines} --genes {params.gene_list} --plot out/aggregate/gene_coverage.germline.min --padding {config[papillon_padding]} --exon_plots >{output.germline}) 2>{log.stderr}"
 
 rule qc_papillon:
   input:
@@ -1109,6 +1128,16 @@ rule annotate_af_indels:
   shell:
     "src/annotate_indel_af.py --verbose --sample TUMOR < {input} > {output} 2>{log.stderr}"
 
+rule filter_strelka_snvs:
+  input:
+    "out/{tumour}.strelka.somatic.snvs.af.norm.vep.pass.vcf.gz"
+  output:
+    "out/{tumour}.strelka.somatic.snvs.af.norm.vep.pass.filter.vcf.gz"
+  log:
+    stderr="log/{tumour}.strelka.snvs.filter.stderr"
+  shell:
+    "src/filter_af.py --verbose --sample TUMOR --info_af --af {config[af_threshold]} --dp {config[dp_threshold]} < {input} > {output} 2>{log.stderr}"
+
 rule filter_indels:
   input:
     "out/{tumour}.strelka.somatic.indels.norm.vep.pass.af.vcf.gz"
@@ -1312,30 +1341,72 @@ rule mutational_signature_filtered_v3:
 rule mutational_signature_filtered_v3_id:
   input:
     reference=config["genome"],
-    vcf="out/{tumour}.strelka.somatic.indels.norm.vep.pass.af.filter.vcf.gz"
+    vcf_indels="out/{tumour}.strelka.somatic.indels.norm.vep.pass.af.filter.vcf.gz",
+    vcf_snvs="out/{tumour}.strelka.somatic.snvs.af.norm.vep.pass.filter.vcf.gz"
   output:
+    sbs="out/{tumour}.mutational_signature_v3_sbs_strelka.filter.exposures",
     id="out/{tumour}.mutational_signature_v3_id_strelka.filter.exposures"
   log:
     stderr="out/{tumour}.mutational_signature_v3_strelka.stderr", # keep for now
   shell:
-    "(python tools/mutational_signature-{config[signature_version]}/mutational_signature/count.py --indels --just_indels --genome {input.reference} --vcf {input.vcf} > out/{wildcards.tumour}.mutational_signature_v3_strelka_indels.filter.counts && "
+    "(python tools/mutational_signature-{config[signature_version]}/mutational_signature/count.py --indels --just_indels --genome {input.reference} --vcf {input.vcf_indels} > out/{wildcards.tumour}.mutational_signature_v3_strelka_indels.filter.counts && "
+    "python tools/mutational_signature-{config[signature_version]}/mutational_signature/count.py --genome {input.reference} --vcf {input.vcf_snvs} > out/{wildcards.tumour}.mutational_signature_v3_strelka_snvs.filter.counts && "
+    "python tools/mutational_signature-{config[signature_version]}/mutational_signature/decompose.py --signatures tools/mutational_signature-{config[signature_version]}/data/signatures_cosmic_v3_sbs.txt --counts out/{wildcards.tumour}.mutational_signature_v3_strelka_snvs.filter.counts > {output.sbs} && "
     "python tools/mutational_signature-{config[signature_version]}/mutational_signature/decompose.py --signatures tools/mutational_signature-{config[signature_version]}/data/signatures_cosmic_v3_id.txt --counts out/{wildcards.tumour}.mutational_signature_v3_strelka_indels.filter.counts > {output.id}) 2>{log.stderr}"
 
+# strand bias included (TODO some redundancy in calculation)
+rule mutational_signature_filtered_v3_sbs_strelka_strand:
+  input:
+    reference=config["genome"],
+    transcripts=config["transcripts"],
+    vcf="out/{tumour}.strelka.somatic.snvs.af.norm.vep.pass.filter.vcf.gz"
+  output:
+    sbs="out/{tumour}.mutational_signature_v3_sbs_strelka_strand.filter.exposures",
+  log:
+    stderr="out/{tumour}.mutational_signature_v3_sbs_strelka_strand_filter.stderr"
+  shell:
+    "(python tools/mutational_signature-{config[signature_version]}/mutational_signature/count.py --genome {input.reference} --vcf {input.vcf} --transcripts {input.transcripts} > out/{wildcards.tumour}.mutational_signature_v3_sbs_strelka_strand.filter.counts && "
+    "python tools/mutational_signature-{config[signature_version]}/mutational_signature/decompose.py --signatures tools/mutational_signature-{config[signature_version]}/data/signatures_cosmic_v3_sbs_tx.txt --counts out/{wildcards.tumour}.mutational_signature_v3_sbs_strelka_strand.filter.counts --strand > {output.sbs}) 2>{log.stderr}"
+
+# strand bias included (TODO some redundancy in calculation)
+rule mutational_signature_filtered_v3_sbs_strand:
+  input:
+    reference=config["genome"],
+    transcripts=config["transcripts"],
+    vcf="out/{tumour}.intersect.pass.filter.vcf.gz"
+  output:
+    sbs="out/{tumour}.mutational_signature_v3_sbs_strand.filter.exposures",
+  log:
+    stderr="out/{tumour}.mutational_signature_v3_sbs_strand_filter.stderr"
+  shell:
+    "(python tools/mutational_signature-{config[signature_version]}/mutational_signature/count.py --genome {input.reference} --vcf {input.vcf} --transcripts {input.transcripts} > out/{wildcards.tumour}.mutational_signature_v3_sbs_strand.filter.counts && "
+    "python tools/mutational_signature-{config[signature_version]}/mutational_signature/decompose.py --signatures tools/mutational_signature-{config[signature_version]}/data/signatures_cosmic_v3_sbs_tx.txt --counts out/{wildcards.tumour}.mutational_signature_v3_sbs_strand.filter.counts --strand > {output.sbs}) 2>{log.stderr}"
+
+# signatures from all samples
 rule combine_mutational_signatures_filtered_v3:
   input:
     sbs=expand("out/{tumour}.mutational_signature_v3_sbs.filter.exposures", tumour=config['tumours']),
+    sbs2=expand("out/{tumour}.mutational_signature_v3_sbs_strelka.filter.exposures", tumour=config['tumours']),
+    sbs_strand=expand("out/{tumour}.mutational_signature_v3_sbs_strand.filter.exposures", tumour=config['tumours']),
+    sbs2_strand=expand("out/{tumour}.mutational_signature_v3_sbs_strelka_strand.filter.exposures", tumour=config['tumours']),
     dbs=expand("out/{tumour}.mutational_signature_v3_dbs.filter.exposures", tumour=config['tumours']),
     dbs2=expand("out/{tumour}.mutational_signature_v3_dbs.exposures", tumour=config['tumours']),
     id=expand("out/{tumour}.mutational_signature_v3_id.exposures", tumour=config['tumours']),
     id2=expand("out/{tumour}.mutational_signature_v3_id_strelka.filter.exposures", tumour=config['tumours'])
   output:
     sbs="out/aggregate/mutational_signatures_v3_sbs.filter.combined.tsv",
+    sbs2="out/aggregate/mutational_signatures_v3_sbs_strelka.filter.combined.tsv",
+    sbs_strand="out/aggregate/mutational_signatures_v3_sbs_strand.filter.combined.tsv",
+    sbs2_strand="out/aggregate/mutational_signatures_v3_sbs_strelka_strand.filter.combined.tsv",
     dbs="out/aggregate/mutational_signatures_v3_dbs.filter.combined.tsv",
     dbs2="out/aggregate/mutational_signatures_v3_dbs.combined.tsv",
     id="out/aggregate/mutational_signatures_v3_id.combined.tsv",
     id2="out/aggregate/mutational_signatures_v3_id_strelka.filter.combined.tsv"
   shell:
     "src/combine_tsv.py {input.sbs} | sed 's/^out\\/\\(.*\)\\.mutational_signature_v3_sbs\\.filter\\.exposures/\\1/' >{output.sbs} && "
+    "src/combine_tsv.py {input.sbs2} | sed 's/^out\\/\\(.*\)\\.mutational_signature_v3_sbs_strelka\\.filter\\.exposures/\\1/' >{output.sbs2} && "
+    "src/combine_tsv.py {input.sbs_strand} | sed 's/^out\\/\\(.*\)\\.mutational_signature_v3_sbs_strand\\.filter\\.exposures/\\1/' >{output.sbs_strand} && "
+    "src/combine_tsv.py {input.sbs2_strand} | sed 's/^out\\/\\(.*\)\\.mutational_signature_v3_sbs_strelka_strand\\.filter\\.exposures/\\1/' >{output.sbs2_strand} && "
     "src/combine_tsv.py {input.dbs} | sed 's/^out\\/\\(.*\)\\.mutational_signature_v3_dbs\\.filter\\.exposures/\\1/' >{output.dbs} && "
     "src/combine_tsv.py {input.dbs2} | sed 's/^out\\/\\(.*\)\\.mutational_signature_v3_dbs\\.exposures/\\1/' >{output.dbs2} && "
     "src/combine_tsv.py {input.id} | sed 's/^out\\/\\(.*\)\\.mutational_signature_v3_id\\.exposures/\\1/' >{output.id} && "

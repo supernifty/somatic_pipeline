@@ -115,6 +115,10 @@ def main(vcfs, bed, min_dp, min_af, min_qual, indels, sample_name, signature_art
             accept += likely_ok
           else:
             accept += 1
+    if size == 0:
+      size = 1
+    if included == 0:
+      included = 1
     sys.stdout.write("{}\t{}\t{:.2f}\t{:.2f}\n".format(vcf, int(accept), accept / size * 1e6, accept / included))
     logging.info('included %i variants. rejected %i non-exonic %i filtered %i non-indel variants.', accept, reject_exon, reject_filter, reject_indel)
 

@@ -161,6 +161,14 @@ mutational_signature_v3:
   memory: 8192
   n: 1
   time: '1:00:00'
+mutational_signature_filtered_v3_sbs_strand:
+  memory: 8192
+  n: 4
+  time: '1:00:00'
+mutational_signature_filtered_v3_sbs_strelka_strand:
+  memory: 8192
+  n: 4
+  time: '1:00:00'
 mutect2_filter:
   memory: 16384
   n: 2
@@ -238,6 +246,10 @@ qc_oxidative_artifacts:
   n: 1
   time: '6:00:00'
 qc_papillon:
+  memory: 8192
+  n: 1
+  time: '8:00:00'
+qc_papillon_min:
   memory: 8192
   n: 1
   time: '8:00:00'

@@ -4,9 +4,16 @@
 '''
 
 import argparse
+import collections
 import csv
 import logging
 import sys
+
+def highlight_if(condition, msg):
+  if condition:
+    return '*{}*'.format(msg)
+  else:
+    return msg
 
 def tsv_to_md(in_fh, out_fh):
   for line_num, line in enumerate(in_fh):
@@ -20,9 +27,27 @@ def tsv_to_md(in_fh, out_fh):
 def main(versions, signatures, burden, msi_burden, qc, selected_variants, all_variants):
   logging.info('starting...')
 
-  if qc is not None:
-    sys.stdout.write('## QC\n')
-    tsv_to_md(open(qc, 'r'), sys.stdout)
+  samples = collections.defaultdict(dict)
+  # get samples from qc
+  for row in csv.DictReader(open(qc, 'r'), delimiter='\t'):
+    sample, category = row['Sample'].split('_')
+    if category not in samples[sample]:
+      samples[sample][category] = {}
+    samples[sample][category]['qc'] = row['Assessment']
+
+  for row in csv.DictReader(open(signatures, 'r'), delimiter='\t'):
+    pass
+
+  # write out results for each sample
+  for sample in samples:
+    sys.stdout.write('\n## {}\n'.format(sample))
+    sys.stdout.write('### QC\n')
+    for category in samples[sample]:
+      assessment = samples[sample][category]['qc']
+      sys.stdout.write('* {}: {}\n'.format(category, highlight_if(assessment != 'OK', assessment)))
+
+  return
+
 
   if signatures is not None:
     sys.stdout.write('## COSMIC Signatures\n')

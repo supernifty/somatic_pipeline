@@ -3,6 +3,7 @@ genome: 'reference/genome.fa'
 genome_dict: 'reference/genome.dict'
 regions: 'reference/regions.bed'
 refseq_bed: 'reference/papillon.refseq.bed'
+transcripts: 'reference/transcripts.gz'
 
 module_bedtools: 'module load BEDTools/2.26.0-intel-2016.u3'
 module_bwa: 'module load BWA/0.7.12-intel-2016.u3'
@@ -25,6 +26,10 @@ signature_version: 0.6
 af_threshold: 0.1
 dp_threshold: 50
 
+papillon_padding: 20
+papillon_max_coverage_tumour: 500
+papillon_max_coverage_germline: 200
+
 samples: 
   S1: ['in/S1_N_RG_2_R1.fastq.gz', 'in/S1_N_RG_2_R2.fastq.gz']
   T1: ['in/S1_T_RG_3_R1.fastq.gz', 'in/S1_T_RG_3_R2.fastq.gz']
@@ -39,24 +44,32 @@ tumours:
 validation:
   S1: [['CHR', 'POS']]
 
-# TODO add NRAS
-# TODO add ACVR2A # ATM # CASP8 # DKK1 # IGF1,2 # MSH3 # NRAS # PTEN #
 genes_of_interest:
   - MUTYH
+  - NRAS
   - MAP3K21
   - MSH2
   - MSH6
+  - ACVR2A
+  - CASP8
   - TGFBR2
   - MLH1
   - CTNNB1
   - PIK3CA
   - FBXW7
+  - MSH3
   - APC
   - PMS2
   - BRAF
+  - WRN
+  - DKK1
+  - PTEN
   - HRAS
+  - IGF2
+  - ATM
   - KRAS
   - MUC19
+  - IGF1
   - POLE
   - BRCA2
   - FAN1
@@ -69,23 +82,35 @@ genes_of_interest:
   - SMAD4
   - POLD1
 
+
 # loh configuration
+# these should be in order
 regions_of_interest:
   - 1:45794914-45806142
+  - 1:115247084-115259515
   - 1:233463513-233520894
   - 2:47630206-47710367
   - 2:48010220-48034092
+  - 2:148602085-148688396
+  - 2:202098165-202152434
   - 3:30647993-30735633
   - 3:37034000-37093000
   - 3:41240941-41281939
   - 3:178866310-178957881
   - 4:153242409-153456185
+  - 5:79950466-80172634
   - 5:112041202-112183936
   - 7:6010555-6048737
   - 7:140432363-140624728
+  - 8:30890777-31033387
+  - 10:54073942-54077417
+  - 10:89623194-89731687
   - 11:532241-535567
+  - 11:2150341-2170833
+  - 11:108093558-108239826
   - 12:25355723-25405865
   - 12:40787195-40964557
+  - 12:102789644-102874423
   - 12:133200348-133264110
   - 13:32889616-32973809
   - 15:31196076-31235310
@@ -126,8 +151,30 @@ loh_region_padding:
   - 50000
   - 50000
   - 50000
+  - 50000
+  - 50000
+  - 50000
+  - 50000
+  - 50000
+  - 50000
+  - 50000
+  - 50000
+  - 50000
+  - 50000
+  - 50000
 
 cnv_region_padding:
+  - 500000
+  - 500000
+  - 500000
+  - 500000
+  - 500000
+  - 500000
+  - 500000
+  - 500000
+  - 500000
+  - 500000
+  - 500000
   - 500000
   - 500000
   - 500000

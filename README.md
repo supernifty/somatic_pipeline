@@ -46,29 +46,14 @@ Modules
 Tools directory
 * picard
 
-### Strelka ###
-```
-wget https://github.com/Illumina/strelka/releases/download/v2.9.2/strelka-2.9.2.centos6_x86_64.tar.bz2
-bunzip2 < strelka-2.9.2.centos6_x86_64.tar.bz2 | tar xvf -
-```
+## Install
+run install.sh to install:
+* strelka
+* cnv_caller
+* fastqc
+* gatk 3.8.1
+* gatk 4
 
-### fastqc ###
-```
-wget http://www.bioinformatics.babraham.ac.uk/projects/fastqc/fastqc_v0.11.7.zip
-unzip fastqc_v0.11.7.zip
-chmod +x tools/FastQC/fastqc
-```
-
-### GATK 4
-```
-wget https://github.com/broadinstitute/gatk/releases/download/4.0.0.0/gatk-4.0.0.0.zip
-```
-
-### GATK 3.8.1
-```
-wget 'https://software.broadinstitute.org/gatk/download/auth?package=GATK-archive&version=3.8-1-0-gf15c1c3ef'
-tar xvfj GenomeAnalysisTK-3.8-1-0-gf15c1c3ef.tar.bz2 
-```
 
 ### GATK 4 Bundle
 ```

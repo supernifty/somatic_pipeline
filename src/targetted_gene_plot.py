@@ -15,8 +15,8 @@ import matplotlib.pyplot as plt
 
 FIGSIZE=(18,18)
 #CLASSES=['None', 'LOH', 'splice_acceptor_variant', 'missense_variant', 'stop_gained', 'frameshift_variant'] # 0..5
-CLASSES=['frameshift_variant', 'stop_gained', 'missense_variant', 'splice_donor_variant', 'splice_acceptor_variant', 'LOH', 'None'] # 0..6
-COLORS=['#ff3030', '#ff60ff', '#f0d070', '#7070ff', '#9050ff', '#70f070', '#e0e0e0']
+CLASSES=['frameshift_variant', 'stop_gained', 'start_lost', 'missense_variant', 'splice_donor_variant', 'splice_acceptor_variant', 'LOH', 'None'] # 0..7
+COLORS=['#ff3030', '#ff60ff', '#ff90c0', '#f0d070', '#7070ff', '#9050ff', '#70f070', '#e0e0e0']
 
 ## matplotlib helpers from https://matplotlib.org/gallery/images_contours_and_fields/image_annotated_heatmap.html
 def heatmap(data, row_labels, col_labels, ax=None,
