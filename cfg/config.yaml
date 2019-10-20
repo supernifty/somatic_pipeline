@@ -21,6 +21,7 @@ cnv_version: 0.1
 msisensor_version: 0.5
 papillon_version: 0.1
 signature_version: 0.6
+vcfanno_version: 'v0.3.2'
 
 # for intersected filtered
 af_threshold: 0.1

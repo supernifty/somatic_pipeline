@@ -17,6 +17,22 @@ annotate_af_somatic:
   memory: 16536
   n: 2
   time: '16:00:00'
+annotate_clinvar_hc:
+  memory: 4096
+  n: 1
+  time: '1:00:00'
+annotate_clinvar_mutect2:
+  memory: 4096
+  n: 1
+  time: '1:00:00'
+annotate_clinvar_strelka_snvs:
+  memory: 4096
+  n: 1
+  time: '1:00:00'
+annotate_clinvar_strelka_indels:
+  memory: 4096
+  n: 1
+  time: '1:00:00'
 annotate_strelka_signatures:
   memory: 4096
   n: 1

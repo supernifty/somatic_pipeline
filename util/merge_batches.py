@@ -21,20 +21,26 @@ def add_signature(fn, samples, header, source, name):
 
     # figure the top sigs
     signature_names = [x for x in row.keys() if x not in ['Mutations', 'SignatureError']]
-    signature_values = [float(row[name]) for name in signature_names]
+    signature_values = [float(row[signature_name]) for signature_name in signature_names]
     top = sorted(zip(signature_values, signature_names), reverse=True)
-    row['{}_sigs'.format(name)] = ' '.join(['{} ({})'.format(x[1].replace('Signature.', '').replace('SBS', '').replace('ID', ''), x[0]) for x in top[:5]])
+    row['sigs'] = ' '.join(['{} ({})'.format(x[1].replace('Signature.', '').replace('SBS', '').replace('ID', ''), x[0]) for x in top[:5]])
 
+    # add prefix to all row names
+    for key in row.copy():
+      row['{}_{}'.format(name, key)] = row[key]
+      del row[key]
+
+    logging.debug('add_signature: adding %s to %s', source, sample)
     samples['{}/{}'.format(sample, source)].update(row) # add results
     samples['{}/{}'.format(sample, source)]['source'] = source
     header.update(row.keys())
+    logging.debug('add_signature: header is now %s', header)
 
 def main(directories, phenotype):
   logging.info('starting...')
 
   samples = collections.defaultdict(dict)
   header = set()
-
 
   for directory in directories:
     logging.info('parsing %s...', directory)
@@ -80,6 +86,7 @@ def main(directories, phenotype):
       sample = row['Filename'].split('/')[-1].split('.')[0]
       del row['Filename'] # include everything but
       samples['{}/{}'.format(sample, source)]['TMB'] = row['PerMB']
+      logging.debug('add_signature: adding %s to %s', source, sample)
       header.add('TMB')
 
     # tmb with signature artefacts removed
