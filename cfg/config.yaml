@@ -16,8 +16,9 @@ module_samtools: 'module load SAMtools/1.8-intel-2016.u3-HTSlib-1.8'
 module_network: 'module load web_proxy'
 
 # tool versions
-loh_version: 0.3
 cnv_version: 0.1
+csvtools_version: 0.2
+loh_version: 0.3
 msisensor_version: 0.5
 papillon_version: 0.1
 signature_version: 0.6
@@ -30,16 +31,6 @@ dp_threshold: 50
 papillon_padding: 20
 papillon_max_coverage_tumour: 500
 papillon_max_coverage_germline: 200
-
-samples: 
-  S1: ['in/S1_N_RG_2_R1.fastq.gz', 'in/S1_N_RG_2_R2.fastq.gz']
-  T1: ['in/S1_T_RG_3_R1.fastq.gz', 'in/S1_T_RG_3_R2.fastq.gz']
-  S2: ['in/S2_N_RG_3_R1.fastq.gz', 'in/S2_N_RG_3_R2.fastq.gz']
-  T2: ['in/S2_T_RG_3_R1.fastq.gz', 'in/S2_T_RG_3_R2.fastq.gz']
-
-tumours:
-  T1: 'S1'
-  T2: 'S2'
 
 # expected variants
 validation:

@@ -117,6 +117,10 @@ gatk_post_genotype_tumours:
   memory: 32768
   n: 2
   time: '24:00:00'
+germline_tsv:
+  memory: 2048
+  n: 2
+  time: '8:00:00'
 intersect_somatic_callers:
   memory: 8192
   n: 1
@@ -129,6 +133,10 @@ make_intervals:
   memory: 8192
   n: 1
   time: '1:00:00'
+make_report:
+  memory: 4096
+  n: 1
+  time: '16:00:00'
 make_sequence_dict:
   memory: 8192
   n: 1
@@ -285,6 +293,10 @@ qc_verifybamid_tumour:
   memory: 8192
   n: 1
   time: '8:00:00'
+report_md:
+  memory: 4096
+  n: 1
+  time: '16:00:00'
 sort:
   memory: 16384
   n: 4
