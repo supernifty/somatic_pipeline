@@ -4,6 +4,7 @@ genome_dict: 'reference/genome.dict'
 regions: 'reference/regions.bed'
 refseq_bed: 'reference/papillon.refseq.bed'
 transcripts: 'reference/transcripts.gz'
+cosmic_counts: 'reference/cosmic.vcf.gz'
 
 module_bedtools: 'module load BEDTools/2.26.0-intel-2016.u3'
 module_bwa: 'module load BWA/0.7.12-intel-2016.u3'
@@ -20,8 +21,11 @@ cnv_version: 0.1
 csvtools_version: 0.2
 loh_version: 0.3
 msisensor_version: 0.5
-papillon_version: 0.1
-signature_version: 0.6
+#papillon_version: 0.1
+papillon_version: 'master'
+#signature_version: 0.6
+signature_version: 'master'
+umi_version: 'master'
 vcfanno_version: 'v0.3.2'
 
 # for intersected filtered
@@ -29,8 +33,13 @@ af_threshold: 0.1
 dp_threshold: 50
 
 papillon_padding: 20
+
+# for plots
 papillon_max_coverage_tumour: 500
 papillon_max_coverage_germline: 200
+
+papillon_min_coverage_tumour_flag: 50
+papillon_min_coverage_germline_flag: 20
 
 # expected variants
 validation:
@@ -153,10 +162,8 @@ loh_region_padding:
   - 50000
   - 50000
   - 50000
-  - 50000
 
 cnv_region_padding:
-  - 500000
   - 500000
   - 500000
   - 500000

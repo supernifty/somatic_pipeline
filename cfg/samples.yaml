@@ -1,3 +1,5 @@
+# wes wgs panel
+capture: 'wes'
 
 samples: 
   S1: ['in/S1_N_RG_2_R1.fastq.gz', 'in/S1_N_RG_2_R2.fastq.gz']
@@ -9,3 +11,5 @@ tumours:
   T1: 'S1'
   T2: 'S2'
 
+umis:
+  S1: 'in/blah.fastq.gz'

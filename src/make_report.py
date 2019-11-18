@@ -108,9 +108,9 @@ def main(versions, signatures, burden, msisensor, qc, selected_somatic_variants,
       sample, category = row['Filename'].split('_', 1)
       if category not in samples[sample]:
         samples[sample][category] = {}
-      if 'variants' not in samples[sample][category]:
-        samples[sample][category]['variants'] = []
-      samples[sample][category]['variants'].append({'gene': row['vep_SYMBOL'], 'category': row['vep_Consequence'], 'cchange': row['vep_HGVSc'], 'polyphen': row['vep_PolyPhen'], 'sift': row['vep_SIFT'], 'clinvar': row['clinvar_pathogenic'], 'gnomad': 'https://gnomad.broadinstitute.org/variant/{CHROM}-{POS}-{REF}-{ALT}'.format(**row)})
+      if 'selected_somatic_variants' not in samples[sample][category]:
+        samples[sample][category]['selected_somatic_variants'] = []
+      samples[sample][category]['selected_somatic_variants'].append({'gene': row['vep_SYMBOL'], 'category': row['vep_Consequence'], 'cchange': row['vep_HGVSc'], 'polyphen': row['vep_PolyPhen'], 'sift': row['vep_SIFT'], 'clinvar': row['clinvar_pathogenic'], 'gnomad': 'https://gnomad.broadinstitute.org/variant/{CHROM}-{POS}-{REF}-{ALT}'.format(**row)})
 
   if all_somatic_variants is not None:
     logging.info('processing %s...', all_somatic_variants)
@@ -130,7 +130,7 @@ def main(versions, signatures, burden, msisensor, qc, selected_somatic_variants,
         samples[sample][category] = {}
       if 'somatic_variants' not in samples[sample][category]:
         samples[sample][category]['somatic_variants'] = []
-      samples[sample][category]['somatic_variants'].append({'gene': row['vep_SYMBOL'], 'category': row['vep_Consequence'], 'cchange': row['vep_HGVSc'], 'polyphen': row['vep_PolyPhen'], 'sift': row['vep_SIFT'], 'clinvar': row['clinvar_pathogenic'], 'gnomad': 'https://gnomad.broadinstitute.org/variant/{CHROM}-{POS}-{REF}-{ALT}'.format(**row)})
+      samples[sample][category]['somatic_variants'].append({'gene': row['vep_SYMBOL'], 'category': row['vep_Consequence'], 'cchange': row['vep_HGVSc'], 'polyphen': row['vep_PolyPhen'], 'sift': row['vep_SIFT'], 'clinvar': row['clinvar_pathogenic'], 'cosmic': row['cosmic'], 'gnomad': 'https://gnomad.broadinstitute.org/variant/{CHROM}-{POS}-{REF}-{ALT}'.format(**row)})
       added += 1
 
 
@@ -179,11 +179,11 @@ def main(versions, signatures, burden, msisensor, qc, selected_somatic_variants,
 
       if 'somatic_variants' in samples[sample][category]:
         sys.stdout.write('\n### Somatic variants of interest ({})\n'.format(len(samples[sample][category]['somatic_variants'])))
-        sys.stdout.write('|Gene|c change|Category|Polyphen|SIFT|Clinvar|Links|\n')
-        sys.stdout.write('|-|-|-|-|-|-|-|\n')
+        sys.stdout.write('|Gene|c change|Category|Polyphen|SIFT|Clinvar|COSMIC|Links|\n')
+        sys.stdout.write('|-|-|-|-|-|-|-|-|\n')
         items = samples[sample][category]['somatic_variants']
         for item in items:
-          sys.stdout.write('|{}|{}|{}|{}|{}|{}|[Gnomad]({})|\n'.format(item['gene'], item['cchange'], item['category'], item['polyphen'], item['sift'], item['clinvar'], item['gnomad']))
+          sys.stdout.write('|{}|{}|{}|{}|{}|{}|{}|[Gnomad]({})|\n'.format(item['gene'], item['cchange'], item['category'], item['polyphen'], item['sift'], item['clinvar'], item['cosmic'], item['gnomad']))
 
       if 'germline_variants' in samples[sample][category]:
         sys.stdout.write('\n### Germline variants of interest ({})\n'.format(len(samples[sample][category]['germline_variants'])))
@@ -193,11 +193,11 @@ def main(versions, signatures, burden, msisensor, qc, selected_somatic_variants,
         for item in items:
           sys.stdout.write('|{}|{}|{}|{}|{}|{}|[Gnomad]({})|\n'.format(item['gene'], item['cchange'], item['category'], item['polyphen'], item['sift'], item['clinvar'], item['gnomad']))
 
-      if 'variants' in samples[sample][category]:
-        sys.stdout.write('\n### Somatic variants of interest ({})\n'.format(len(samples[sample][category]['variants'])))
+      if 'selected_somatic_variants' in samples[sample][category]:
+        sys.stdout.write('\n### Somatic variants of interest ({})\n'.format(len(samples[sample][category]['selected_somatic_variants'])))
         sys.stdout.write('|Gene|c change|Category|Polyphen|SIFT|Clinvar|Links|\n')
         sys.stdout.write('|-|-|-|-|-|-|-|\n')
-        items = samples[sample][category]['variants']
+        items = samples[sample][category]['selected_somatic_variants']
         for item in items:
           sys.stdout.write('|{}|{}|{}|{}|{}|{}|[Gnomad]({})|\n'.format(item['gene'], item['cchange'], item['category'], item['polyphen'], item['sift'], item['clinvar'], item['gnomad']))
 

@@ -136,7 +136,7 @@ make_intervals:
 make_report:
   memory: 4096
   n: 1
-  time: '16:00:00'
+  time: '24:00:00'
 make_sequence_dict:
   memory: 8192
   n: 1
@@ -269,11 +269,15 @@ qc_oxidative_artifacts:
   memory: 16384
   n: 1
   time: '6:00:00'
-qc_papillon:
+qc_papillon_exons:
   memory: 8192
   n: 1
   time: '8:00:00'
-qc_papillon_min:
+qc_papillon_exons_min:
+  memory: 8192
+  n: 1
+  time: '8:00:00'
+qc_papillon_regions_min:
   memory: 8192
   n: 1
   time: '8:00:00'
