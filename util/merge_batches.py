@@ -11,7 +11,53 @@ import sys
 
 import csv
 
-def add_signature(fn, samples, header, source, name):
+V2_SBS=False
+V3_SBS=True
+
+V2_ID=False
+V3_ID=True
+
+TMB_CLEANED=False
+
+GENES_OF_INTEREST = set([
+  'MUTYH',
+  'NRAS',
+  'MAP3K21',
+  'MSH2',
+  'MSH6',
+  'ACVR2A',
+  'CASP8',
+  'TGFBR2',
+  'MLH1',
+  'CTNNB1',
+  'PIK3CA',
+  'FBXW7',
+  'MSH3',
+  'APC',
+  'PMS2',
+  'BRAF',
+  'WRN',
+  'DKK1',
+  'PTEN',
+  'HRAS',
+  'IGF2',
+  'ATM',
+  'KRAS',
+  'MUC19',
+  'IGF1',
+  'POLE',
+  'BRCA2',
+  'FAN1',
+  'NTHL1',
+  'TP53',
+  'BRCA1',
+  'RNF43',
+  'AXIN2',
+  'SMAD2',
+  'SMAD4',
+  'POLD1'])
+
+def add_signature(fn, samples, header, source, prefix):
   for row in csv.DictReader(open(fn, 'r'), delimiter='\t'):
     sample = row['Filename']
     del row['Filename'] # include everything but
@@ -23,11 +69,18 @@ def add_signature(fn, samples, header, source, name):
     signature_names = [x for x in row.keys() if x not in ['Mutations', 'SignatureError']]
     signature_values = [float(row[signature_name]) for signature_name in signature_names]
     top = sorted(zip(signature_values, signature_names), reverse=True)
-    row['sigs'] = ' '.join(['{} ({})'.format(x[1].replace('Signature.', '').replace('SBS', '').replace('ID', ''), x[0]) for x in top[:5]])
+
+    for idx, x in enumerate(top[:5]):
+      #row['sigs'] = ' '.join(['{} ({})'.format(x[1].replace('Signature.', '').replace('SBS', '').replace('ID', ''), x[0]) for x in top[:5]])
+      row['R{}'.format(idx + 1)] = '{} {}%'.format(x[1], int(x[0] * 100)) # as %
+
+    # also remove original signatures
+    for key in signature_names:
+      del row[key]
 
     # add prefix to all row names
     for key in row.copy():
-      row['{}_{}'.format(name, key)] = row[key]
+      row['{}{}'.format(prefix, key)] = row[key]
       del row[key]
 
     logging.debug('add_signature: adding %s to %s', source, sample)
@@ -35,6 +88,12 @@ def add_signature(fn, samples, header, source, name):
     samples['{}/{}'.format(sample, source)]['source'] = source
     header.update(row.keys())
     logging.debug('add_signature: header is now %s', header)
+
+def display_value(samples, key, name):
+  if name == 'LOH':
+    return ' '.join(sorted(list(samples[key].get(name, set()))))
+  else:
+    return samples[key].get(name, 'NA') 
 
 def main(directories, phenotype):
   logging.info('starting...')
@@ -60,25 +119,29 @@ def main(directories, phenotype):
 
 
     # signatures - v2
-    fn = os.path.join(directory, 'out', 'aggregate', 'mutational_signatures_v2.filter.combined.tsv')
-    if not os.path.isfile(fn):
-      logging.info('skipping %s', directory)
-      continue
-    add_signature(fn, samples, header, source, 'v2')
+    if V2_SBS:
+      fn = os.path.join(directory, 'out', 'aggregate', 'mutational_signatures_v2.filter.combined.tsv')
+      if not os.path.isfile(fn):
+        logging.info('skipping %s', directory)
+        continue
+      add_signature(fn, samples, header, source, 'v2')
 
     # v3 sbs signatures
-    fn = os.path.join(directory, 'out', 'aggregate', 'mutational_signatures_v3_sbs.filter.combined.tsv')
-    if not os.path.isfile(fn):
-      logging.info('skipping %s', directory)
-      continue
-    add_signature(fn, samples, header, source, 'v3_SBS')
+    if V3_SBS:
+      fn = os.path.join(directory, 'out', 'aggregate', 'mutational_signatures_v3_sbs.filter.combined.tsv')
+      if not os.path.isfile(fn):
+        logging.info('skipping %s', directory)
+        continue
+      add_signature(fn, samples, header, source, 'SBS.')
 
     # v3 id signatures
-    fn = os.path.join(directory, 'out', 'aggregate', 'mutational_signatures_v3_id_strelka.filter.combined.tsv')
-    if not os.path.isfile(fn):
-      logging.info('skipping %s', directory)
-      continue
-    add_signature(fn, samples, header, source, 'v3_ID')
+    if V3_ID:
+      #fn = os.path.join(directory, 'out', 'aggregate', 'mutational_signatures_v3_id_strelka.filter.combined.tsv')
+      fn = os.path.join(directory, 'out', 'aggregate', 'mutational_signatures_v3_id.combined.tsv')
+      if not os.path.isfile(fn):
+        logging.info('skipping %s', directory)
+        continue
+      add_signature(fn, samples, header, source, 'ID.')
 
     # tmb
     fn = os.path.join(directory, 'out', 'aggregate', 'mutation_rate.tsv')
@@ -90,28 +153,58 @@ def main(directories, phenotype):
       header.add('TMB')
 
     # tmb with signature artefacts removed
-    fn = os.path.join(directory, 'out', 'aggregate', 'mutation_rate.artefact_filter.tsv')
-    for row in csv.DictReader(open(fn, 'r'), delimiter='\t'):
-      sample = row['Filename'].split('/')[-1].split('.')[0]
-      del row['Filename'] # include everything but
-      samples['{}/{}'.format(sample, source)]['TMB.cleaned'] = row['PerMB']
-      header.add('TMB.cleaned')
+    if TMB_CLEANED:
+      fn = os.path.join(directory, 'out', 'aggregate', 'mutation_rate.artefact_filter.tsv')
+      for row in csv.DictReader(open(fn, 'r'), delimiter='\t'):
+        sample = row['Filename'].split('/')[-1].split('.')[0]
+        del row['Filename'] # include everything but
+        samples['{}/{}'.format(sample, source)]['TMB.cleaned'] = row['PerMB']
+        header.add('TMB.cleaned')
 
     # msisensor
     fn = os.path.join(directory, 'out', 'aggregate', 'msisensor.tsv')
-    for row in csv.DictReader(open(fn, 'r'), delimiter='\t'):
-      sample = row['Sample']
-      del row['Sample'] # include everything but
-      samples['{}/{}'.format(sample, source)]['MSISensor'] = row['%']
-      header.add('MSISensor')
+    try:
+      for row in csv.DictReader(open(fn, 'r'), delimiter='\t'):
+        sample = row['Sample']
+        del row['Sample'] # include everything but
+        samples['{}/{}'.format(sample, source)]['MSISensor'] = row['%']
+        header.add('MSISensor')
+    except:
+      logging.error('failed to add msisensor')
+
+    # mantis
+    fn = os.path.join(directory, 'out', 'aggregate', 'mantis.tsv')
+    try:
+      for row in csv.DictReader(open(fn, 'r'), delimiter='\t'):
+        sample = row['Sample']
+        del row['Sample'] # include everything but
+        samples['{}/{}'.format(sample, source)]['Mantis'] = row['Pct']
+        header.add('Mantis')
+    except:
+      logging.error('failed to add mantis')
 
     # ontarget coverage
-    fn = os.path.join(directory, 'out', 'aggregate', 'ontarget.tsv')
-    for row in csv.DictReader(open(fn, 'r'), delimiter='\t'):
-      sample = row['Filename'].split('/')[-1].split('.')[0]
-      del row['Filename'] # include everything but
-      samples['{}/{}'.format(sample, source)]['MeanOnTargetCoverage'] = row['Mean']
-      header.add('MeanOnTargetCoverage')
+    try:
+      fn = os.path.join(directory, 'out', 'aggregate', 'ontarget.tsv')
+      for row in csv.DictReader(open(fn, 'r'), delimiter='\t'):
+        sample = row['Filename'].split('/')[-1].split('.')[0]
+        del row['Filename'] # include everything but
+        samples['{}/{}'.format(sample, source)]['MeanOnTargetCoverage'] = row['Mean']
+        header.add('MeanOnTargetCoverage')
+    except:
+      logging.error('failed to add ontarget')
+
+    # loh
+    try:
+      fn = os.path.join(directory, 'out', 'aggregate', 'loh.genes.tsv')
+      for row in csv.DictReader(open(fn, 'r'), delimiter='\t'): # sample gene accept
+        if row['gene'] in GENES_OF_INTEREST:
+          if 'LOH' not in samples['{}/{}'.format(row['sample'], source)]:
+            samples['{}/{}'.format(row['sample'], source)]['LOH'] = set()
+          samples['{}/{}'.format(row['sample'], source)]['LOH'].add(row['gene'])
+          header.add('LOH')
+    except:
+      logging.error('failed to add loh')
 
   header.add('Phenotype')
   header.add('Category')
@@ -128,7 +221,7 @@ def main(directories, phenotype):
   sys.stdout.write('Sample\tSource\t{}\n'.format('\t'.join(sorted(list(header)))))
   for key in sorted(samples.keys()):
     sample, source = key.split('/')
-    sys.stdout.write('{}\t{}\t{}\n'.format(sample, source, '\t'.join([samples[key].get(name, 'NA') for name in sorted(list(header))])))
+    sys.stdout.write('{}\t{}\t{}\n'.format(sample, source, '\t'.join([display_value(samples, key, name)for name in sorted(list(header))])))
 
   logging.info('done')
 

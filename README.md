@@ -37,6 +37,7 @@ module_network: 'module load web_proxy'
 * reference/genome.fa: this file needs to be bwa indexed.
 * reference/msi.regions.bed: TODO
 * reference/regions.bed: TODO
+* reference/mantis.bed: ./tools/mantis/tools/RepeatFinder -i genome.fa -o mantis.bed
 
 Modules
 * bwa
@@ -165,6 +166,13 @@ Indels
 ### Informative
 * out/{tumour}.strelka.somatic.af.png: AF distribution
 * out/{tumour}.mutect2.somatic.af.png: AF distribution
+
+## Add a new batch
+* mkdir batchname
+* ./deploy.sh full_path_to_batchname
+* symlink fastqs into in directory
+* update samples.yaml
+* ./run.sh
 
 ## TODO
 * extract all high impact to tsv

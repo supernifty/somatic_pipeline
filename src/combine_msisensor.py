@@ -7,7 +7,7 @@ import sys
 CLASSES = (
   (0, 1, 'MSI-L'),
   (1, 3.5, 'MSS'),
-  (3.5, 100, 'MSI-H')
+  (3.5, 110, 'MSI-H')
 )
 
 writer = csv.DictWriter(sys.stdout, delimiter='\t', fieldnames=['Sample', 'Class', '%', 'Total_Number_of_Sites', 'Number_of_Somatic_Sites' ])

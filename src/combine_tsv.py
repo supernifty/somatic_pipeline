@@ -1,4 +1,7 @@
 #!/usr/bin/env python
+'''
+  given a list of tsv files, generates a single tsv, one row for each file, with its values (only taking the first two columns)
+'''
 
 import collections
 import sys

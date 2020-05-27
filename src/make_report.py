@@ -110,7 +110,7 @@ def main(versions, signatures, burden, msisensor, qc, selected_somatic_variants,
         samples[sample][category] = {}
       if 'selected_somatic_variants' not in samples[sample][category]:
         samples[sample][category]['selected_somatic_variants'] = []
-      samples[sample][category]['selected_somatic_variants'].append({'gene': row['vep_SYMBOL'], 'category': row['vep_Consequence'], 'cchange': row['vep_HGVSc'], 'polyphen': row['vep_PolyPhen'], 'sift': row['vep_SIFT'], 'clinvar': row['clinvar_pathogenic'], 'gnomad': 'https://gnomad.broadinstitute.org/variant/{CHROM}-{POS}-{REF}-{ALT}'.format(**row)})
+      samples[sample][category]['selected_somatic_variants'].append({'gene': row['vep_SYMBOL'], 'category': row['vep_Consequence'], 'cchange': row['vep_HGVSc'], 'polyphen': row['vep_PolyPhen'], 'sift': row['vep_SIFT'], 'clinvar': row.get('clinvar_pathogenic', 'unavailable'), 'gnomad': 'https://gnomad.broadinstitute.org/variant/{CHROM}-{POS}-{REF}-{ALT}'.format(**row)})
 
   if all_somatic_variants is not None:
     logging.info('processing %s...', all_somatic_variants)
@@ -123,14 +123,14 @@ def main(versions, signatures, burden, msisensor, qc, selected_somatic_variants,
         continue # skip missing sample
       if row['GT'] == '0/0' or row['GT'] == './.':
         continue # skip no genotype
-      if row['clinvar_pathogenic'] not in CLINVAR_PASS:
+      if row.get('clinvar_pathogenic', 'unavailable') not in CLINVAR_PASS:
         continue # skip not annotated as possibly pathogenic
       sample, category = row['VCF_SAMPLE_ID'].split('_', 1)
       if category not in samples[sample]:
         samples[sample][category] = {}
       if 'somatic_variants' not in samples[sample][category]:
         samples[sample][category]['somatic_variants'] = []
-      samples[sample][category]['somatic_variants'].append({'gene': row['vep_SYMBOL'], 'category': row['vep_Consequence'], 'cchange': row['vep_HGVSc'], 'polyphen': row['vep_PolyPhen'], 'sift': row['vep_SIFT'], 'clinvar': row['clinvar_pathogenic'], 'cosmic': row['cosmic'], 'gnomad': 'https://gnomad.broadinstitute.org/variant/{CHROM}-{POS}-{REF}-{ALT}'.format(**row)})
+      samples[sample][category]['somatic_variants'].append({'gene': row['vep_SYMBOL'], 'category': row['vep_Consequence'], 'cchange': row['vep_HGVSc'], 'polyphen': row['vep_PolyPhen'], 'sift': row['vep_SIFT'], 'clinvar': row.get('clinvar_pathogenic', 'unavailable'), 'cosmic': row['cosmic'], 'gnomad': 'https://gnomad.broadinstitute.org/variant/{CHROM}-{POS}-{REF}-{ALT}'.format(**row)})
       added += 1
 
 
@@ -145,14 +145,14 @@ def main(versions, signatures, burden, msisensor, qc, selected_somatic_variants,
         continue # skip missing sample
       if row['GT'] == '0/0' or row['GT'] == './.':
         continue # skip no genotype
-      if row['clinvar_pathogenic'] not in CLINVAR_PASS:
+      if row.get('clinvar_pathogenic', 'unavailable') not in CLINVAR_PASS:
         continue # skip not annotated as possibly pathogenic
       sample, category = row['VCF_SAMPLE_ID'].split('_', 1)
       if category not in samples[sample]:
         samples[sample][category] = {}
       if 'germline_variants' not in samples[sample][category]:
         samples[sample][category]['germline_variants'] = []
-      samples[sample][category]['germline_variants'].append({'gene': row['vep_SYMBOL'], 'category': row['vep_Consequence'], 'cchange': row['vep_HGVSc'], 'polyphen': row['vep_PolyPhen'], 'sift': row['vep_SIFT'], 'clinvar': row['clinvar_pathogenic'], 'gnomad': 'https://gnomad.broadinstitute.org/variant/{CHROM}-{POS}-{REF}-{ALT}'.format(**row)})
+      samples[sample][category]['germline_variants'].append({'gene': row['vep_SYMBOL'], 'category': row['vep_Consequence'], 'cchange': row['vep_HGVSc'], 'polyphen': row['vep_PolyPhen'], 'sift': row['vep_SIFT'], 'clinvar': row.get('clinvar_pathogenic', 'unavailable'), 'gnomad': 'https://gnomad.broadinstitute.org/variant/{CHROM}-{POS}-{REF}-{ALT}'.format(**row)})
       added += 1
 
 

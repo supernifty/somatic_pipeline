@@ -18,11 +18,13 @@ module_network: 'module load web_proxy'
 
 # tool versions
 cnv_version: 0.1
-csvtools_version: 0.2
+csvtools_version: 'master'
 loh_version: 0.3
+mantis_version: '1.0.4'
 msisensor_version: 0.5
 #papillon_version: 0.1
 papillon_version: 'master'
+plotme_version: 0.2
 #signature_version: 0.6
 signature_version: 'master'
 umi_version: 'master'

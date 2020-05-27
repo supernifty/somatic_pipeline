@@ -149,7 +149,7 @@ def main(sample, dp_threshold, target, info_af, log, filter, just_pass, use_like
       plt.legend()
   else: # just the totals
     plt.ylabel('Number of variants')
-    if just_pass:
+    if just_pass and len(ads) > 0:
       plt.hist(ads, bins=int(max(ads) * 100))
     else:
       plt.hist([ads, ads_nopass], label=('PASS', 'No PASS'), bins=int(max(ads + ads_nopass) * 100), stacked=True)

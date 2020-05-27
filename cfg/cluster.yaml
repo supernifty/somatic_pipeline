@@ -16,7 +16,7 @@ align_unpaired:
 annotate_af_somatic:
   memory: 16536
   n: 2
-  time: '16:00:00'
+  time: '24:00:00'
 annotate_clinvar_hc:
   memory: 4096
   n: 1
@@ -85,6 +85,10 @@ copy_number_varscan_post:
   memory: 4096
   n: 2
   time: '2:00:00'
+extended_contexts:
+  memory: 4096
+  n: 1
+  time: '0:30:00'
 fastqc:
   memory: 2048
   n: 1
@@ -145,10 +149,18 @@ merge_bams:
   memory: 8192
   n: 1
   time: '8:00:00'
-msisensor:
+mantis:
   memory: 8192
   n: 1
   time: '4:00:00'
+mantis_prep:
+  memory: 2048
+  n: 1
+  time: '1:00:00'
+msisensor:
+  memory: 8192
+  n: 1
+  time: '8:00:00'
 msisensor_prep:
   memory: 16384
   n: 1
@@ -177,6 +189,22 @@ mutational_signature_filtered_v3_id:
   memory: 8192
   n: 1
   time: '1:00:00'
+mutational_signature_filtered_pks_v3:
+  memory: 8192
+  n: 1
+  time: '1:00:00'
+mutational_signature_mutect2_pass_dp_af_v3:
+  memory: 8192
+  n: 1
+  time: '1:00:00'
+mutational_signature_mutect2_pass_v3:
+  memory: 8192
+  n: 1
+  time: '1:00:00'
+mutational_signature_mutect2_v3:
+  memory: 8192
+  n: 1
+  time: '1:00:00'
 mutational_signature_v2:
   memory: 8192
   n: 1
@@ -196,7 +224,7 @@ mutational_signature_filtered_v3_sbs_strelka_strand:
 mutect2_filter:
   memory: 16384
   n: 2
-  time: '12:00:00'
+  time: '16:00:00'
 mutect2_pon:
   memory: 16384
   n: 2
@@ -234,9 +262,13 @@ qc_alignment:
   n: 1
   time: '6:00:00'
 qc_conpair:
-  memory: 16384
+  memory: 8192
   n: 1
-  time: '8:00:00'
+  time: '4:00:00'
+qc_conpair_matrix:
+  memory: 8192
+  n: 1
+  time: '12:00:00'
 qc_depth_of_coverage:
   memory: 16384
   n: 1
