@@ -38,6 +38,26 @@ module_network: 'module load web_proxy'
 * reference/msi.regions.bed: TODO
 * reference/regions.bed: TODO
 * reference/mantis.bed: ./tools/mantis/tools/RepeatFinder -i genome.fa -o mantis.bed
+* msiseq
+```
+  # using tandem_repeats_nim
+  ./main --repeat=1 --min=5 < ../somatic_pipeline/reference/genome.fa > hg19.repeats.1.bed
+  sed 's/ [^\t]*//' < /data/cephfs/punim0567/peter/src/tandem_repeats_nim/hg19.repeats.1.bed > ./reference/hg19repeats.msiseq.tsv 
+```
+
+* msiseq - old instructions
+```
+  wget http://steverozen.net/data/Hg19repeats.rda
+  Rscript
+  > load('Hg19repeats.rda')
+  > write.table(Hg19repeats, file='Hg19repeats.tsv', quote=FALSE, sep='\t', row.names=F)
+  > quit()
+```
+  * had to update exp formatted numbers
+
+```
+  sed '1d' < reference/Hg19repeats.tsv | bedtools sort | awk '{ $3 += 1; print }' | sed 's/ /\t/g' > reference/Hg19repeats.sorted.tsv
+```
 
 Modules
 * bwa

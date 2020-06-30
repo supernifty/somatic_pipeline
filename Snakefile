@@ -75,7 +75,7 @@ rule all:
     expand("out/{sample}.metrics.target", sample=samples['samples']),
 
     # -- issues expand("out/{tumour}.verifybamid.somatic.completed", tumour=samples['tumours']),
-    expand("out/{tumour}.intersect.pass.filter.vcf.gz", tumour=samples['tumours']), # somatic combination of strelka and mutect2, with filter
+    expand("out/{tumour}.intersect.pass.filter.capture.vcf.gz", tumour=samples['tumours']), # somatic combination of strelka and mutect2, with filter, intersect with capture
     expand("out/{tumour}.pass_one.vcf.gz", tumour=samples['tumours']), # somatic combination of strelka and mutect2, with filter
 
     # -- expand("out/{tumour}.varscan.copynumber.deletions.bed", tumour=samples['tumours']), # TODO fails on mini sample
@@ -97,6 +97,7 @@ rule all:
     # msi
     "out/aggregate/msisensor.tsv",
     "out/aggregate/mantis.tsv",
+    "out/aggregate/msiseq.tsv",
 
     # combined results
     "out/aggregate/concordance_matrix.tsv",
@@ -108,6 +109,7 @@ rule all:
     "out/aggregate/mutational_signatures_v2.combined.tsv",
     "out/aggregate/mutational_signatures_v2.filter.combined.tsv",
     "out/aggregate/mutational_signatures_v3_sbs.filter.combined.tsv",
+    "out/aggregate/mutational_signatures_v3_sbs_capture.filter.combined.tsv",
     "out/aggregate/mutational_signatures_v3_dbs.filter.combined.tsv",
     "out/aggregate/mutational_signatures_v3_sbs_strand.filter.combined.tsv",
     "out/aggregate/mutational_signatures_v3_sbs_strelka_strand.filter.combined.tsv",
@@ -122,6 +124,7 @@ rule all:
     "out/aggregate/mutational_signatures_v3_sbs.filter.pks.combined.tsv",
     "out/aggregate/mutational_signatures_v3_id.filter.pks.combined.tsv",
     "out/aggregate/extended_contexts.v2.tsv",
+    "out/aggregate/mutational_signatures_v3_sbs_alexandrov.filter.pks.combined.tsv",
 
     "out/aggregate/max_coverage.tsv",
     "out/aggregate/max_trimmed_coverage.tsv",
@@ -1243,6 +1246,37 @@ rule filter_intersected_somatic_callers:
     "src/filter_af.py --sample {params.tumour} --af {params.af} --dp {params.dp} < {input.nopass} 2>{log.stderr} | bgzip > {output.nopass} && "
     "src/filter_af.py --sample {params.tumour} --af {params.af} --dp {params.dp} < {input.passed} 2>{log.stderr} | bgzip > {output.passed}"
 
+rule filter_capture:
+  input:
+    vcf="out/{tumour}.intersect.pass.filter.vcf.gz",
+    regions=config["regions"]
+  output:
+    vcf="out/{tumour}.intersect.pass.filter.capture.vcf.gz"
+  shell:
+    "{config[module_bedtools]} && "
+    "{config[module_htslib]} && "
+    "bedtools intersect -a {input.vcf} -b {input.regions} -header | bgzip > {output.vcf}"
+
+# mutational signatures with filtered counts
+rule mutational_signature_capture_v3:
+  input:
+    reference=config["genome"],
+    vcf="out/{tumour}.intersect.pass.filter.capture.vcf.gz"
+  output:
+    counts="out/{tumour}.mutational_signature_v3_capture.filter.counts",
+    sbs="out/{tumour}.mutational_signature_v3_sbs_capture.filter.exposures",
+    dbs="out/{tumour}.mutational_signature_v3_dbs_capture.filter.exposures",
+    id="out/{tumour}.mutational_signature_v3_id_capture.filter.exposures"
+  log:
+    stderr="out/{tumour}.mutational_signature_v3_capture.stderr" # keep for now
+  shell:
+    "(python tools/mutational_signature-{config[signature_version]}/mutational_signature/count.py --indels --doublets --genome {input.reference} --vcf {input.vcf} > {output.counts} && "
+    "python tools/mutational_signature-{config[signature_version]}/mutational_signature/decompose.py --signatures tools/mutational_signature-{config[signature_version]}/data/signatures_cosmic_v3_sbs.txt --counts {output.counts} > {output.sbs} && "
+    "python tools/mutational_signature-{config[signature_version]}/mutational_signature/decompose.py --signatures tools/mutational_signature-{config[signature_version]}/data/signatures_cosmic_v3_id.txt --counts {output.counts} > {output.id} && "
+    "python tools/mutational_signature-{config[signature_version]}/mutational_signature/decompose.py --signatures tools/mutational_signature-{config[signature_version]}/data/signatures_cosmic_v3_dbs.txt --counts {output.counts} > {output.dbs}) 2>{log.stderr}"
+
+
+
 #rule annotate_af_germline:
 #  input:
 #    "out/{germline}.strelka.germline.vcf.gz",
@@ -1627,10 +1661,24 @@ rule mutational_signature_filtered_pks_v3:
     "python tools/mutational_signature-{config[signature_version]}/mutational_signature/decompose.py --signatures /home/peter/crc/peter/analyses/yocrc/sbs_with_pks.tsv --counts out/{wildcards.tumour}.mutational_signature_v3_sbs.filter.pks.counts > {output.sbs} && "
     "python tools/mutational_signature-{config[signature_version]}/mutational_signature/decompose.py --signatures /home/peter/crc/peter/analyses/yocrc/ids_with_pks.tsv --counts out/{wildcards.tumour}.mutational_signature_v3_id.filter.pks.counts > {output.id}) 2>{log.stderr}"
 
+# mutational signatures with filtered counts
+rule mutational_signature_filtered_pks_alexandrov_v3:
+  input:
+    reference=config["genome"],
+    sbs_counts="out/{tumour}.mutational_signature_v3_sbs.filter.pks.counts",
+    vcf="out/{tumour}.intersect.pass.filter.vcf.gz"
+  output:
+    sbs="out/{tumour}.mutational_signature_v3_sbs_alexandrov.filter.pks.exposures"
+  log:
+    stderr="out/{tumour}.mutational_signature_v3_filter.pks.stderr"
+  shell:
+    "(python tools/mutational_signature-{config[signature_version]}/mutational_signature/decompose.py --signatures /home/peter/crc/peter/analyses/yocrc/sbs_with_pks_alexandrov.tsv --counts {input.sbs_counts} > {output.sbs}) 2>{log.stderr}"
+
 # signatures from all samples
 rule combine_mutational_signatures_filtered_v3:
   input:
     sbs=expand("out/{tumour}.mutational_signature_v3_sbs.filter.exposures", tumour=samples['tumours']),
+    sbs_capture=expand("out/{tumour}.mutational_signature_v3_sbs_capture.filter.exposures", tumour=samples['tumours']),
     sbs2=expand("out/{tumour}.mutational_signature_v3_sbs_strelka.filter.exposures", tumour=samples['tumours']),
     sbs_mutect2=expand("out/{tumour}.mutational_signature_v3_sbs_mutect2.filter.exposures", tumour=samples['tumours']),
     sbs_mutect2_pass=expand("out/{tumour}.mutational_signature_v3_sbs_mutect2.filter.pass.exposures", tumour=samples['tumours']),
@@ -1638,9 +1686,11 @@ rule combine_mutational_signatures_filtered_v3:
     sbs_strand=expand("out/{tumour}.mutational_signature_v3_sbs_strand.filter.exposures", tumour=samples['tumours']),
     sbs2_strand=expand("out/{tumour}.mutational_signature_v3_sbs_strelka_strand.filter.exposures", tumour=samples['tumours']),
     sbs_pks=expand("out/{tumour}.mutational_signature_v3_sbs.filter.pks.exposures", tumour=samples['tumours']),
+    sbs_pks_alexandrov=expand("out/{tumour}.mutational_signature_v3_sbs_alexandrov.filter.pks.exposures", tumour=samples['tumours']),
     dbs=expand("out/{tumour}.mutational_signature_v3_dbs.filter.exposures", tumour=samples['tumours']),
     dbs2=expand("out/{tumour}.mutational_signature_v3_dbs.exposures", tumour=samples['tumours']),
     id=expand("out/{tumour}.mutational_signature_v3_id.exposures", tumour=samples['tumours']),
+    id_capture=expand("out/{tumour}.mutational_signature_v3_id_capture.filter.exposures", tumour=samples['tumours']),
     id2=expand("out/{tumour}.mutational_signature_v3_id_strelka.filter.exposures", tumour=samples['tumours']),
     id_mutect2=expand("out/{tumour}.mutational_signature_v3_id_mutect2.filter.exposures", tumour=samples['tumours']),
     id_mutect2_pass=expand("out/{tumour}.mutational_signature_v3_id_mutect2.filter.pass.exposures", tumour=samples['tumours']),
@@ -1648,6 +1698,7 @@ rule combine_mutational_signatures_filtered_v3:
     id_pks=expand("out/{tumour}.mutational_signature_v3_id.filter.pks.exposures", tumour=samples['tumours']),
   output:
     sbs="out/aggregate/mutational_signatures_v3_sbs.filter.combined.tsv",
+    sbs_capture="out/aggregate/mutational_signatures_v3_sbs_capture.filter.combined.tsv",
     sbs2="out/aggregate/mutational_signatures_v3_sbs_strelka.filter.combined.tsv",
     sbs_mutect2="out/aggregate/mutational_signatures_v3_sbs_mutect2.filter.combined.tsv",
     sbs_mutect2_pass="out/aggregate/mutational_signatures_v3_sbs_mutect2.filter.pass.combined.tsv",
@@ -1655,9 +1706,11 @@ rule combine_mutational_signatures_filtered_v3:
     sbs_strand="out/aggregate/mutational_signatures_v3_sbs_strand.filter.combined.tsv",
     sbs2_strand="out/aggregate/mutational_signatures_v3_sbs_strelka_strand.filter.combined.tsv",
     sbs_pks="out/aggregate/mutational_signatures_v3_sbs.filter.pks.combined.tsv",
+    sbs_pks_alexandrov="out/aggregate/mutational_signatures_v3_sbs_alexandrov.filter.pks.combined.tsv",
     dbs="out/aggregate/mutational_signatures_v3_dbs.filter.combined.tsv",
     dbs2="out/aggregate/mutational_signatures_v3_dbs.combined.tsv",
     id="out/aggregate/mutational_signatures_v3_id.combined.tsv",
+    id_capture="out/aggregate/mutational_signatures_v3_id_capture.filter.combined.tsv",
     id2="out/aggregate/mutational_signatures_v3_id_strelka.filter.combined.tsv",
     id_mutect2="out/aggregate/mutational_signatures_v3_id_mutect2.filter.combined.tsv",
     id_mutect2_pass="out/aggregate/mutational_signatures_v3_id_mutect2.filter.pass.combined.tsv",
@@ -1665,6 +1718,7 @@ rule combine_mutational_signatures_filtered_v3:
     id_pks="out/aggregate/mutational_signatures_v3_id.filter.pks.combined.tsv",
   shell:
     "src/combine_tsv.py {input.sbs} | sed 's/^out\\/\\(.*\)\\.mutational_signature_v3_sbs\\.filter\\.exposures/\\1/' >{output.sbs} && "
+    "src/combine_tsv.py {input.sbs_capture} | sed 's/^out\\/\\(.*\)\\.mutational_signature_v3_sbs_capture\\.filter\\.exposures/\\1/' >{output.sbs_capture} && "
     "src/combine_tsv.py {input.sbs2} | sed 's/^out\\/\\(.*\)\\.mutational_signature_v3_sbs_strelka\\.filter\\.exposures/\\1/' >{output.sbs2} && "
     "src/combine_tsv.py {input.sbs_mutect2} | sed 's/^out\\/\\(.*\)\\.mutational_signature_v3_sbs_mutect2.filter\\.exposures/\\1/' >{output.sbs_mutect2} && "
     "src/combine_tsv.py {input.sbs_mutect2_pass} | sed 's/^out\\/\\(.*\)\\.mutational_signature_v3_sbs_mutect2.filter.pass\\.exposures/\\1/' >{output.sbs_mutect2_pass} && "
@@ -1672,9 +1726,11 @@ rule combine_mutational_signatures_filtered_v3:
     "src/combine_tsv.py {input.sbs_strand} | sed 's/^out\\/\\(.*\)\\.mutational_signature_v3_sbs_strand\\.filter\\.exposures/\\1/' >{output.sbs_strand} && "
     "src/combine_tsv.py {input.sbs2_strand} | sed 's/^out\\/\\(.*\)\\.mutational_signature_v3_sbs_strelka_strand\\.filter\\.exposures/\\1/' >{output.sbs2_strand} && "
     "src/combine_tsv.py {input.sbs_pks} | sed 's/^out\\/\\(.*\)\\.mutational_signature_v3_sbs\\.filter\\.pks\\.exposures/\\1/' >{output.sbs_pks} && "
+    "src/combine_tsv.py {input.sbs_pks_alexandrov} | sed 's/^out\\/\\(.*\)\\.mutational_signature_v3_sbs_alexandrov\\.filter\\.pks\\.exposures/\\1/' >{output.sbs_pks_alexandrov} && "
     "src/combine_tsv.py {input.dbs} | sed 's/^out\\/\\(.*\)\\.mutational_signature_v3_dbs\\.filter\\.exposures/\\1/' >{output.dbs} && "
     "src/combine_tsv.py {input.dbs2} | sed 's/^out\\/\\(.*\)\\.mutational_signature_v3_dbs\\.exposures/\\1/' >{output.dbs2} && "
     "src/combine_tsv.py {input.id} | sed 's/^out\\/\\(.*\)\\.mutational_signature_v3_id\\.exposures/\\1/' >{output.id} && "
+    "src/combine_tsv.py {input.id_capture} | sed 's/^out\\/\\(.*\)\\.mutational_signature_v3_id_capture\\.filter\\.exposures/\\1/' >{output.id_capture} && "
     "src/combine_tsv.py {input.id2} | sed 's/^out\\/\\(.*\)\\.mutational_signature_v3_id_strelka\\.filter\\.exposures/\\1/' >{output.id2} && "
     "src/combine_tsv.py {input.id_mutect2} | sed 's/^out\\/\\(.*\)\\.mutational_signature_v3_id_mutect2\\.filter\\.exposures/\\1/' >{output.id_mutect2} && "
     "src/combine_tsv.py {input.id_mutect2_pass} | sed 's/^out\\/\\(.*\)\\.mutational_signature_v3_id_mutect2\\.filter\\.pass\\.exposures/\\1/' >{output.id_mutect2_pass} && "
@@ -2035,6 +2091,17 @@ rule mantis_combine:
     "out/aggregate/mantis.tsv"
   shell:
     "src/combine_mantis.py {input} > {output}"
+
+##### msiseq style #####
+rule msiseq:
+  input:
+    vcfs=expand("out/{tumour}.intersect.pass.filter.vcf.gz", tumour=samples['tumours']),
+    repeats="reference/hg19repeats.msiseq.tsv",
+    capture=config["regions"]
+  output:
+    result="out/aggregate/msiseq.tsv"
+  shell:
+    "src/msiseq.py --verbose --vcfs {input.vcfs} --repeats {input.repeats} --capture {input.capture} --threshold 0.1 > {output.result}"
 
 ### not working
 # tumour purity - currently not working

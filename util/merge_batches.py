@@ -128,7 +128,7 @@ def main(directories, phenotype):
 
     # v3 sbs signatures
     if V3_SBS:
-      fn = os.path.join(directory, 'out', 'aggregate', 'mutational_signatures_v3_sbs.filter.combined.tsv')
+      fn = os.path.join(directory, 'out', 'aggregate', 'mutational_signatures_v3_sbs_capture.filter.combined.tsv')
       if not os.path.isfile(fn):
         logging.info('skipping %s', directory)
         continue
@@ -137,7 +137,7 @@ def main(directories, phenotype):
     # v3 id signatures
     if V3_ID:
       #fn = os.path.join(directory, 'out', 'aggregate', 'mutational_signatures_v3_id_strelka.filter.combined.tsv')
-      fn = os.path.join(directory, 'out', 'aggregate', 'mutational_signatures_v3_id.combined.tsv')
+      fn = os.path.join(directory, 'out', 'aggregate', 'mutational_signatures_v3_id_capture.filter.combined.tsv')
       if not os.path.isfile(fn):
         logging.info('skipping %s', directory)
         continue
@@ -182,6 +182,18 @@ def main(directories, phenotype):
         header.add('Mantis')
     except:
       logging.error('failed to add mantis')
+
+    # msiseq
+    fn = os.path.join(directory, 'out', 'aggregate', 'msiseq.tsv')
+    try:
+      for row in csv.DictReader(open(fn, 'r'), delimiter='\t'):
+        sample = row['Sample']
+        del row['Sample'] # include everything but
+        samples['{}/{}'.format(sample, source)]['msiseq'] = row['S.ind']
+        header.add('msiseq')
+    except:
+      logging.error('failed to add msiseq')
+
 
     # ontarget coverage
     try:

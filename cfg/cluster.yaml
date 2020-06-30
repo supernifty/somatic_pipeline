@@ -93,6 +93,10 @@ fastqc:
   memory: 2048
   n: 1
   time: '6:00:00'
+filter_capture:
+  memory: 4096
+  n: 1
+  time: 0:30:00
 filter_context_artefact:
   memory: 4096
   n: 1
@@ -165,6 +169,10 @@ msisensor_prep:
   memory: 16384
   n: 1
   time: '2:00:00'
+msiseq:
+  memory: 16384
+  n: 1
+  time: '3:00:00'
 multiqc:
   memory: 4096
   n: 1
@@ -177,6 +185,10 @@ mutation_burden_artefact_filter:
   memory: 4096
   n: 1
   time: '2:00:00'
+mutational_signature_capture_v3:
+  memory: 8192
+  n: 1
+  time: '1:00:00'
 mutational_signature_filtered_v2:
   memory: 8192
   n: 1
