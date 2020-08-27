@@ -52,7 +52,11 @@ def main(sample, af_threshold, dp_threshold, info_af, pass_only, dp_field):
         skipped_af += 1
         continue
     else:
-      af = variant.format("AF")[sample_id][0] 
+      try:
+        af = variant.format("AF")[sample_id][0] 
+      except:
+        skipped_af += 1
+        continue
 
     if af < af_threshold:
       skipped_af += 1

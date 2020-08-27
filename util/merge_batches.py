@@ -7,15 +7,18 @@ import argparse
 import collections
 import logging
 import os
+import re
 import sys
 
 import csv
 
 V2_SBS=False
 V3_SBS=True
+V31_SBS=False
 
 V2_ID=False
 V3_ID=True
+V31_ID=False
 
 TMB_CLEANED=False
 
@@ -122,7 +125,7 @@ def main(directories, phenotype):
     if V2_SBS:
       fn = os.path.join(directory, 'out', 'aggregate', 'mutational_signatures_v2.filter.combined.tsv')
       if not os.path.isfile(fn):
-        logging.info('skipping %s', directory)
+        logging.info('skipping %s: no v2 sbs', directory)
         continue
       add_signature(fn, samples, header, source, 'v2')
 
@@ -130,18 +133,37 @@ def main(directories, phenotype):
     if V3_SBS:
       fn = os.path.join(directory, 'out', 'aggregate', 'mutational_signatures_v3_sbs_capture.filter.combined.tsv')
       if not os.path.isfile(fn):
-        logging.info('skipping %s', directory)
+        logging.info('skipping %s: no v3 sbs', directory)
         continue
       add_signature(fn, samples, header, source, 'SBS.')
 
     # v3 id signatures
     if V3_ID:
-      #fn = os.path.join(directory, 'out', 'aggregate', 'mutational_signatures_v3_id_strelka.filter.combined.tsv')
-      fn = os.path.join(directory, 'out', 'aggregate', 'mutational_signatures_v3_id_capture.filter.combined.tsv')
+      fn = os.path.join(directory, 'out', 'aggregate', 'mutational_signatures_v3_id_strelka.filter.combined.tsv')
+      #fn = os.path.join(directory, 'out', 'aggregate', 'mutational_signatures_v3_id_capture.filter.combined.tsv')
       if not os.path.isfile(fn):
-        logging.info('skipping %s', directory)
+        logging.info('skipping %s: no v3 id', directory)
         continue
       add_signature(fn, samples, header, source, 'ID.')
+
+    # v3 sbs signatures
+    if V31_SBS:
+      fn = os.path.join(directory, 'out', 'aggregate', 'mutational_signatures_v3.1_sbs.combined.tsv')
+      if not os.path.isfile(fn):
+        logging.info('skipping %s: no v3.1 sbs', directory)
+        continue
+      add_signature(fn, samples, header, source, 'SBS.')
+
+    # v3 id signatures
+    if V31_ID:
+      #fn = os.path.join(directory, 'out', 'aggregate', 'mutational_signatures_v3_id_strelka.filter.combined.tsv')
+      #fn = os.path.join(directory, 'out', 'aggregate', 'mutational_signatures_v3.1_id.combined.tsv')
+      fn = os.path.join(directory, 'out', 'aggregate', 'mutational_signatures_v3.1_id.combined.tsv')
+      if not os.path.isfile(fn):
+        logging.info('skipping %s no v3.1 id', directory)
+        continue
+      add_signature(fn, samples, header, source, 'ID.')
+
 
     # tmb
     fn = os.path.join(directory, 'out', 'aggregate', 'mutation_rate.tsv')
@@ -176,7 +198,7 @@ def main(directories, phenotype):
     fn = os.path.join(directory, 'out', 'aggregate', 'mantis.tsv')
     try:
       for row in csv.DictReader(open(fn, 'r'), delimiter='\t'):
-        sample = row['Sample']
+        sample = row['Sample'].split('/')[-1]
         del row['Sample'] # include everything but
         samples['{}/{}'.format(sample, source)]['Mantis'] = row['Pct']
         header.add('Mantis')
@@ -198,13 +220,17 @@ def main(directories, phenotype):
     # ontarget coverage
     try:
       fn = os.path.join(directory, 'out', 'aggregate', 'ontarget.tsv')
-      for row in csv.DictReader(open(fn, 'r'), delimiter='\t'):
+      # first line can contain spaces in older pipeline
+      lines = [re.sub('  *', '\t', x) for x in open(fn, 'r').readlines()]
+      
+      for row in csv.DictReader(lines, delimiter='\t'):
         sample = row['Filename'].split('/')[-1].split('.')[0]
         del row['Filename'] # include everything but
         samples['{}/{}'.format(sample, source)]['MeanOnTargetCoverage'] = row['Mean']
         header.add('MeanOnTargetCoverage')
     except:
       logging.error('failed to add ontarget')
+      raise
 
     # loh
     try:
@@ -232,6 +258,7 @@ def main(directories, phenotype):
   # now write everything to stdout
   sys.stdout.write('Sample\tSource\t{}\n'.format('\t'.join(sorted(list(header)))))
   for key in sorted(samples.keys()):
+    logging.debug('writing %s...', key)
     sample, source = key.split('/')
     sys.stdout.write('{}\t{}\t{}\n'.format(sample, source, '\t'.join([display_value(samples, key, name)for name in sorted(list(header))])))
 

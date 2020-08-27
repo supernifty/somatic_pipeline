@@ -59,6 +59,13 @@ module_network: 'module load web_proxy'
   sed '1d' < reference/Hg19repeats.tsv | bedtools sort | awk '{ $3 += 1; print }' | sed 's/ /\t/g' > reference/Hg19repeats.sorted.tsv
 ```
 
+* revel
+```
+cd references
+wget https://rothsj06.u.hpc.mssm.edu/revel_grch38_all_chromosomes.csv.zip
+unzip < revel_grch38_all_chromosomes.csv.zip > revel_grch38_all_chromosomes.csv.gz
+```
+
 Modules
 * bwa
 * java
@@ -189,10 +196,20 @@ Indels
 
 ## Add a new batch
 * mkdir batchname
+* want to link tmp to /data/scratch/projects/punim0567/tmp-batchname:
+  * mkdir -p /data/scratch/projects/punim0567/tmp-batchname && ln -s /data/scratch/projects/punim0567/tmp-batchname tmp
 * ./deploy.sh full_path_to_batchname
-* symlink fastqs into in directory
-* update samples.yaml
+* symlink fastqs into in directory: for merging can use ./util/merge_fastq.py
+  * fastq format is expected to be: in/S1_RG_2_R1.fastq.gz
+* update samples.yaml: can use ./util/samples.py > ./cfg/samples.yaml
+  * e.g. util/samples.py --tumours in/*_T_*_R* in/*_T[0-9]_*_R* --normals in/*_BC_*_R* --sample_components 2 --verbose > cfg/samples.yaml
+  * e.g. util/samples.py --tumours in/*_T*_R* --normals in/*_BC*_R* > cfg/samples.yaml
 * ./run.sh
+
+## Add new samples to a batch
+```
+rm out/aggregate/* out/germline_joint_*.vcf out/tumour_joint_*.vcf out/germline_joint.hc.normalized.vcf out/tumour_joint.hc.normalized.vcf out/mutect2.pon.vcf.gz
+```
 
 ## TODO
 * extract all high impact to tsv

@@ -3,7 +3,7 @@
 set -o errexit
 
 # run on the cluster
-MAXJOBS=512
+MAXJOBS=128
 PREFIX="tl-$(basename `pwd`)"
 
 echo "cleaning up..."
@@ -41,5 +41,5 @@ echo "finished at $(date)"
 # rm out/*.bqsr.bam
 
 # mark as read only
-echo "marking read only at $(date)"
-chmod -R -w out
+#echo "marking read only at $(date)"
+#chmod -R -w out

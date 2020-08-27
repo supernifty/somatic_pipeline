@@ -5,6 +5,14 @@ regions: 'reference/regions.bed'
 refseq_bed: 'reference/papillon.refseq.bed'
 transcripts: 'reference/transcripts.gz'
 cosmic_counts: 'reference/cosmic.vcf.gz'
+revel: 'reference/revel_grch38_all_chromosomes.csv.gz'
+clinvar: 'reference/clinvar_20191219.vcf.gz'
+cadd: 'reference/cadd_1.6.tsv.gz'
+
+vt_decompose_params: '-s'
+#vt_decompose_params: '' # no smart mode if -s fails (doesn't work yet)
+make_report_params: ''
+#make_report_params: '--no_category' # if samples don't include _BC _T etc
 
 module_bedtools: 'module load BEDTools/2.26.0-intel-2016.u3'
 module_bwa: 'module load BWA/0.7.12-intel-2016.u3'
@@ -29,6 +37,7 @@ plotme_version: 0.2
 signature_version: 'master'
 umi_version: 'master'
 vcfanno_version: 'v0.3.2'
+vt_version: '0.577'
 
 # for intersected filtered
 af_threshold: 0.1

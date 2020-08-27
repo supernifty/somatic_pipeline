@@ -20,17 +20,20 @@ def main(vep_header):
       csq = header.index('CSQ')
       vep_fields = ['vep_{}'.format(x) for x in vep_fields]
       logging.debug('%i vep columns', len(vep_fields))
-      new_header = header[:csq-1] + vep_fields + header[csq+1:]
+      new_header = header[:csq] + vep_fields + header[csq+1:]
       writer.writerow(new_header)
-      logging.debug('new header has %i columns', len(new_header))
+      logging.debug('new header has %i columns: %s', len(new_header), new_header)
       continue
 
-    for tx in row[csq].split(','):
-      vep_cols = tx.split('|')
-      if vep_cols[-1] == '1':
-        break
-    new_row = row[:csq-1] + vep_cols + row[csq+1:]
-    writer.writerow(new_row)
+    if csq < len(row):
+      for tx in row[csq].split(','):
+        vep_cols = tx.split('|')
+        if vep_cols[-1] == '1':
+          break
+      new_row = row[:csq] + vep_cols + row[csq+1:]
+      writer.writerow(new_row)
+    else:
+      logging.info('skipping line %i: only %i rows, need %i', row_count, len(row), csq + 1)
 
     if row_count % 10000 == 0:
       logging.info('%i records read...', row_count)

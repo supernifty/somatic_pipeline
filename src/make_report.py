@@ -1,12 +1,15 @@
 #!/usr/bin/env python
 '''
   summarize the analysis
+  assumes samples are of the form person_tissue
 '''
 
 import argparse
 import collections
 import csv
+import gzip
 import logging
+import re
 import sys
 
 #  173348 .
@@ -52,21 +55,28 @@ def tsv_to_md(in_fh, out_fh):
       out_fh.write('\n')
   out_fh.write('\n')
 
-def main(versions, signatures, burden, msisensor, qc, selected_somatic_variants, all_somatic_variants, all_germline_variants, signature_detail):
+def main(versions, signatures, burden, msisensor, qc, selected_somatic_variants, all_somatic_variants, all_germline_variants, signature_detail, no_category):
   logging.info('starting...')
 
   samples = collections.defaultdict(dict)
+  category = 'uncategorized'
   # get samples from qc
   if qc is not None:
     for row in csv.DictReader(open(qc, 'r'), delimiter='\t'):
-      sample, category = row['Sample'].split('_', 1)
+      if no_category:
+        sample = row['Sample']
+      else:
+        sample, category = re.split('[-_]', row['Sample'], 1)
       if category not in samples[sample]:
         samples[sample][category] = {}
       samples[sample][category]['qc'] = row['Assessment']
 
   if burden is not None:
     for row in csv.DictReader(open(burden, 'r'), delimiter='\t'):
-      sample, category = row['Filename'].split('/')[-1].split('.')[0].split('_', 1)
+      if no_category:
+        sample = row['Filename'].split('/')[-1].split('.')[0]
+      else:
+        sample, category = re.split('[-_]', row['Filename'].split('/')[-1].split('.')[0], 1)
       if category not in samples[sample]:
         samples[sample][category] = {}
       if 'genome' not in samples[sample][category]:
@@ -76,7 +86,10 @@ def main(versions, signatures, burden, msisensor, qc, selected_somatic_variants,
 
   if msisensor is not None:
     for row in csv.DictReader(open(msisensor, 'r'), delimiter='\t'):
-      sample, category = row['Sample'].split('_', 1)
+      if no_category:
+        sample = row['Sample']
+      else:
+        sample, category = re.split('[-_]', row['Sample'], 1)
       if category not in samples[sample]:
         samples[sample][category] = {}
       if 'genome' not in samples[sample][category]:
@@ -91,7 +104,10 @@ def main(versions, signatures, burden, msisensor, qc, selected_somatic_variants,
 
   if signatures is not None:
     for row in csv.DictReader(open(signatures, 'r'), delimiter='\t'):
-      sample, category = row['Filename'].split('_', 1)
+      if no_category:
+        sample = row['Filename']
+      else:
+        sample, category = re.split('[-_]', row['Filename'], 1)
       if category not in samples[sample]:
         samples[sample][category] = {}
       samples[sample][category]['sigs'] = []
@@ -105,7 +121,10 @@ def main(versions, signatures, burden, msisensor, qc, selected_somatic_variants,
   if selected_somatic_variants is not None:
     # somatic variants of interest
     for row in csv.DictReader(open(selected_somatic_variants, 'r'), delimiter='\t'):
-      sample, category = row['Filename'].split('_', 1)
+      if no_category:
+        sample = row['Filename']
+      else:
+        sample, category = re.split('[-_]', row['Filename'], 1)
       if category not in samples[sample]:
         samples[sample][category] = {}
       if 'selected_somatic_variants' not in samples[sample][category]:
@@ -116,7 +135,7 @@ def main(versions, signatures, burden, msisensor, qc, selected_somatic_variants,
     logging.info('processing %s...', all_somatic_variants)
     # germline variants of interest
     added = 0
-    for idx, row in enumerate(csv.DictReader(open(all_somatic_variants, 'r'), delimiter='\t')):
+    for idx, row in enumerate(csv.DictReader(gzip.open(all_somatic_variants, 'rt'), delimiter='\t')):
       if idx % 100000 == 0 or added > 0 and added % 100 == 0:
         logging.info('%i variants processed, added %i...', idx, added)
       if row['VCF_SAMPLE_ID'] is None:
@@ -125,7 +144,10 @@ def main(versions, signatures, burden, msisensor, qc, selected_somatic_variants,
         continue # skip no genotype
       if row.get('clinvar_pathogenic', 'unavailable') not in CLINVAR_PASS:
         continue # skip not annotated as possibly pathogenic
-      sample, category = row['VCF_SAMPLE_ID'].split('_', 1)
+      if no_category:
+        sample = row['VCF_SAMPLE_ID']
+      else:
+        sample, category = re.split('[-_]', row['VCF_SAMPLE_ID'], 1)
       if category not in samples[sample]:
         samples[sample][category] = {}
       if 'somatic_variants' not in samples[sample][category]:
@@ -138,7 +160,7 @@ def main(versions, signatures, burden, msisensor, qc, selected_somatic_variants,
     logging.info('processing %s...', all_germline_variants)
     # germline variants of interest
     added = 0
-    for idx, row in enumerate(csv.DictReader(open(all_germline_variants, 'r'), delimiter='\t')):
+    for idx, row in enumerate(csv.DictReader(gzip.open(all_germline_variants, 'rt'), delimiter='\t')):
       if idx % 1000000 == 0 or added > 0 and added % 100 == 0:
         logging.info('%i variants processed, added %i...', idx, added)
       if row['VCF_SAMPLE_ID'] is None:
@@ -147,7 +169,10 @@ def main(versions, signatures, burden, msisensor, qc, selected_somatic_variants,
         continue # skip no genotype
       if row.get('clinvar_pathogenic', 'unavailable') not in CLINVAR_PASS:
         continue # skip not annotated as possibly pathogenic
-      sample, category = row['VCF_SAMPLE_ID'].split('_', 1)
+      if no_category:
+        sample = re.split('[-_]', row['VCF_SAMPLE_ID'])
+      else:
+        sample, category = re.split('[-_]', row['VCF_SAMPLE_ID'], 1)
       if category not in samples[sample]:
         samples[sample][category] = {}
       if 'germline_variants' not in samples[sample][category]:
@@ -220,7 +245,8 @@ if __name__ == '__main__':
   parser.add_argument('--qc', help='qc results')
   parser.add_argument('--selected_somatic_variants', help='variants in genes of interest')
   parser.add_argument('--all_somatic_variants', help='all found variants')
-  parser.add_argument('--all_germline_variants', help='all found variants')
+  parser.add_argument('--all_germline_variants', required=False, help='all found variants')
+  parser.add_argument('--no_category', action='store_true', help='do not infer category')
   parser.add_argument('--verbose', action='store_true', help='more logging')
   args = parser.parse_args()
   if args.verbose:
@@ -228,5 +254,5 @@ if __name__ == '__main__':
   else:
     logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s', level=logging.INFO)
 
-  main(args.versions, args.signatures, args.burden, args.msisensor, args.qc, args.selected_somatic_variants, args.all_somatic_variants, args.all_germline_variants, args.signature_detail)
+  main(args.versions, args.signatures, args.burden, args.msisensor, args.qc, args.selected_somatic_variants, args.all_somatic_variants, args.all_germline_variants, args.signature_detail, args.no_category)
 

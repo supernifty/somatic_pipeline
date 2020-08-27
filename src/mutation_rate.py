@@ -15,7 +15,7 @@ import cyvcf2
 import intervaltree
 
 def main(vcfs, bed, min_dp, min_af, min_qual, indels, sample_name, signature_artefacts, signature_artefact_penalty):
-  logging.info('parsing {}...'.format(bed))
+  logging.info('parsing %s...', bed)
   tree = {}
   size = overlaps = skipped = included = 0
   for line_count, line in enumerate(open(bed, 'r')):
@@ -59,6 +59,7 @@ def main(vcfs, bed, min_dp, min_af, min_qual, indels, sample_name, signature_art
 
   sys.stdout.write("Filename\tCount\tPerMB\tPerInterval\n")
   for vcf in vcfs:
+    logging.info('parsing %s...', vcf)
     vcf_in = cyvcf2.VCF(vcf)
     accept = reject_exon = reject_filter = reject_indel = 0
     sample = vcf.split('/')[-1].split('.')[0]
@@ -68,6 +69,7 @@ def main(vcfs, bed, min_dp, min_af, min_qual, indels, sample_name, signature_art
       sample_id = vcf_in.samples.index(sample_name)
 
     for variant in vcf_in:
+      logging.debug('assessing %s...', variant)
       if variant.QUAL is not None and variant.QUAL < min_qual:
         reject_filter += 1
         continue

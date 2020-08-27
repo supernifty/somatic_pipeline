@@ -71,13 +71,17 @@ def main(sample, dp_threshold, target, info_af, log, filter, just_pass, use_like
     if info_af:
       value = variant.INFO["AF"]
     else:
-      ad = variant.format("AD")[sample_id]
-      ref = ad[0]
-      alt = ad[1]
-      if ref + alt > 0:
-        value = alt / (ref + alt)
-      else:
+      ad_samples = variant.format("AD")
+      if ad_samples is None:
         value = 0
+      else:
+        ad = ad_samples[sample_id]
+        ref = ad[0]
+        alt = ad[1]
+        if ref + alt > 0:
+          value = alt / (ref + alt)
+        else:
+          value = 0
     target_ad.append(value) # overall set of afs
     allowed += 1
     if use_likelihoods:
