@@ -85,6 +85,10 @@ cnv_caller:
   memory: 8192
   n: 1
   time: '8:00:00'
+cnvkit:
+  memory: 8192
+  n: 1
+  time: '24:00:00'
 copy_number_varscan:
   memory: 8192
   n: 2

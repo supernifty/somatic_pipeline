@@ -201,9 +201,19 @@ Indels
 * ./deploy.sh full_path_to_batchname
 * symlink fastqs into in directory: for merging can use ./util/merge_fastq.py
   * fastq format is expected to be: in/S1_RG_2_R1.fastq.gz
+  * if sample looks like sample_BC then sample components is 2. If it looks like sample-BC then sample components is 1.
+  * e.g.
+```
+python /data/gpfs/projects/punim0567/peter/src/somatic_pipeline/util/merge_fastq.py \
+  --files /data/projects/punim0567/data/AGRF_CAGRF20073103_HKVGTDSXY/AGRF_CAGRF20073103_HMCG2DSXY_additional_data/*_R*.fastq.gz \
+    /data/projects/punim0567/data/AGRF_CAGRF20073103_HKVGTDSXY/AGRF_CAGRF20073103_HKVGTDSXY/*_R*.fastq.gz \
+  --sample_components 2 \
+  --outdir in
+```
+  * e.g. for f in /data/gpfs/projects/punim0567/data/AGRF_CAGRF20073103_HJV72DSXY/merged/*.fastq.gz; do ln -s $f .; done
 * update samples.yaml: can use ./util/samples.py > ./cfg/samples.yaml
-  * e.g. util/samples.py --tumours in/*_T_*_R* in/*_T[0-9]_*_R* --normals in/*_BC_*_R* --sample_components 2 --verbose > cfg/samples.yaml
-  * e.g. util/samples.py --tumours in/*_T*_R* --normals in/*_BC*_R* > cfg/samples.yaml
+  * e.g. /data/gpfs/projects/punim0567/peter/src/somatic_pipeline/util/samples.py --tumours in/*_T_*_R* in/*_T[0-9]_*_R* --normals in/*_BC_*_R* --sample_components 2 --verbose > cfg/samples.yaml
+  * e.g. /data/gpfs/projects/punim0567/peter/src/somatic_pipeline/util/samples.py --tumours in/*_T*_R* --normals in/*_BC*_R* > cfg/samples.yaml
 * ./run.sh
 
 ## Add new samples to a batch

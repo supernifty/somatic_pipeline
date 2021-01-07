@@ -14,6 +14,7 @@ import csv
 
 V2_SBS=False
 V3_SBS=True
+V3_DBS=True
 V31_SBS=False
 
 V2_ID=False
@@ -98,7 +99,7 @@ def display_value(samples, key, name):
   else:
     return samples[key].get(name, 'NA') 
 
-def main(directories, phenotype):
+def main(directories, phenotype, require):
   logging.info('starting...')
 
   samples = collections.defaultdict(dict)
@@ -145,6 +146,14 @@ def main(directories, phenotype):
         logging.info('skipping %s: no v3 id', directory)
         continue
       add_signature(fn, samples, header, source, 'ID.')
+
+    if V3_DBS:
+      fn = os.path.join(directory, 'out', 'aggregate', 'mutational_signatures_v3_dbs.filter.combined.tsv')
+      #fn = os.path.join(directory, 'out', 'aggregate', 'mutational_signatures_v3_id_capture.filter.combined.tsv')
+      if not os.path.isfile(fn):
+        logging.info('skipping %s: no v3 id', directory)
+        continue
+      add_signature(fn, samples, header, source, 'DB.')
 
     # v3 sbs signatures
     if V31_SBS:
@@ -198,7 +207,7 @@ def main(directories, phenotype):
     fn = os.path.join(directory, 'out', 'aggregate', 'mantis.tsv')
     try:
       for row in csv.DictReader(open(fn, 'r'), delimiter='\t'):
-        sample = row['Sample'].split('/')[-1]
+        sample = row['Sample'].split('/')[-1].split('.')[0]
         del row['Sample'] # include everything but
         samples['{}/{}'.format(sample, source)]['Mantis'] = row['Pct']
         header.add('Mantis')
@@ -244,20 +253,26 @@ def main(directories, phenotype):
     except:
       logging.error('failed to add loh')
 
-  header.add('Phenotype')
-  header.add('Category')
-  for row in csv.DictReader(open(phenotype, 'r'), delimiter='\t'):
-    for key in samples.keys():
-      if key.startswith('{}/'.format(row['Sample Name'])):
-        samples[key]['Phenotype'] = row['Phenotype']
-        samples[key]['Category'] = row['Category']
-        logging.debug('adding phenotype for %s', key)
-      else:
-        pass #logging.info('skipping phenotype for %s', row['Sample Name'])
+  if phenotype is not None:
+    header.add('Phenotype')
+    header.add('Category')
+    for row in csv.DictReader(open(phenotype, 'r'), delimiter='\t'):
+      for key in samples.keys():
+        if key.startswith('{}/'.format(row['Sample Name'])):
+          samples[key]['Phenotype'] = row['Phenotype']
+          samples[key]['Category'] = row['Category']
+          logging.debug('adding phenotype for %s', key)
+        else:
+          pass #logging.info('skipping phenotype for %s', row['Sample Name'])
+  else:
+    logging.info('Not adding phenotype data')
 
   # now write everything to stdout
   sys.stdout.write('Sample\tSource\t{}\n'.format('\t'.join(sorted(list(header)))))
   for key in sorted(samples.keys()):
+    if require is not None and require not in samples[key]:
+      logging.debug('skipping %s...', key)
+      continue
     logging.debug('writing %s...', key)
     sample, source = key.split('/')
     sys.stdout.write('{}\t{}\t{}\n'.format(sample, source, '\t'.join([display_value(samples, key, name)for name in sorted(list(header))])))
@@ -267,7 +282,8 @@ def main(directories, phenotype):
 if __name__ == '__main__':
   parser = argparse.ArgumentParser(description='combine batch results')
   parser.add_argument('--directories', required=True, nargs='+', help='location of each batch')
-  parser.add_argument('--phenotype', required=True, help='location of phenotype')
+  parser.add_argument('--phenotype', required=False, help='location of phenotype')
+  parser.add_argument('--require', required=False, help='field to require')
   parser.add_argument('--verbose', action='store_true', help='more logging')
   args = parser.parse_args()
   if args.verbose:
@@ -275,4 +291,4 @@ if __name__ == '__main__':
   else:
     logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s', level=logging.INFO)
 
-  main(args.directories, args.phenotype)
+  main(args.directories, args.phenotype, args.require)

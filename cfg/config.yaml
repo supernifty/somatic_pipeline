@@ -1,7 +1,12 @@
 
+cnvkit_access: 'reference/access-5k-mappable.grch37.bed'
 genome: 'reference/genome.fa'
 genome_dict: 'reference/genome.dict'
+
 regions: 'reference/regions.bed'
+#regions: 'reference/regions.wgs.bed'
+
+refflat: 'reference/refFlat.txt'
 refseq_bed: 'reference/papillon.refseq.bed'
 transcripts: 'reference/transcripts.gz'
 cosmic_counts: 'reference/cosmic.vcf.gz'
@@ -13,6 +18,8 @@ vt_decompose_params: '-s'
 #vt_decompose_params: '' # no smart mode if -s fails (doesn't work yet)
 make_report_params: ''
 #make_report_params: '--no_category' # if samples don't include _BC _T etc
+strelka_params: '--exome'
+# strelka_params: '' # wgs
 
 module_bedtools: 'module load BEDTools/2.26.0-intel-2016.u3'
 module_bwa: 'module load BWA/0.7.12-intel-2016.u3'
@@ -27,7 +34,8 @@ module_network: 'module load web_proxy'
 # tool versions
 cnv_version: 0.1
 csvtools_version: 'master'
-loh_version: 0.3
+kataegis_version: 0.1
+loh_version: 0.5
 mantis_version: '1.0.4'
 msisensor_version: 0.5
 #papillon_version: 0.1
@@ -41,7 +49,9 @@ vt_version: '0.577'
 
 # for intersected filtered
 af_threshold: 0.1
-dp_threshold: 50
+dp_threshold: 50 # combined depth
+dp_tumour_threshold: 25 # not yet used
+dp_germline_threshold: 25 # not yet used
 
 papillon_padding: 20
 
@@ -52,6 +62,9 @@ papillon_max_coverage_germline: 200
 papillon_min_coverage_tumour_flag: 50
 papillon_min_coverage_germline_flag: 20
 
+af_genes: "MSH2 MLH1 MSH6 PMS2 POLE POLD1"
+af_gene_colors: "'MSH2=#901000' 'MSH6=#606000' 'MLH1=#009000' 'PMS2=#000090' 'POLE=#800080' 'POLD1=#7f8c8d'"
+
 # expected variants
 validation:
   S1: [['CHR', 'POS']]
@@ -60,6 +73,7 @@ genes_of_interest:
   - MUTYH
   - NRAS
   - MAP3K21
+  - EPCAM
   - MSH2
   - MSH6
   - ACVR2A
@@ -67,6 +81,7 @@ genes_of_interest:
   - TGFBR2
   - MLH1
   - CTNNB1
+  - MBD4
   - PIK3CA
   - FBXW7
   - MSH3
@@ -94,24 +109,26 @@ genes_of_interest:
   - SMAD4
   - POLD1
 
-
-# loh configuration
-# these should be in order
+# loh and mini-bams configuration genes of interest
+# these should be in order 
+# TODO calculate directly from transcripts file - for now run: python biotools/gene_to_loci.py --genes MSH2 EPCAM --refseq ~/crc/data/public_datasets/refseq.ucsc.hg19.180829.gz
 regions_of_interest:
-  - 1:45794914-45806142
-  - 1:115247084-115259515
-  - 1:233463513-233520894
-  - 2:47630206-47710367
-  - 2:48010220-48034092
-  - 2:148602085-148688396
-  - 2:202098165-202152434
-  - 3:30647993-30735633
-  - 3:37034000-37093000
-  - 3:41240941-41281939
-  - 3:178866310-178957881
-  - 4:153242409-153456185
-  - 5:79950466-80172634
-  - 5:112041202-112183936
+  - 1:45794914-45806142 # MUTYH
+  - 1:115247084-115259515 # PIK3CA
+  - 1:233463513-233520894 # FBXW7
+  - 2:47596286-47614167 # EPCAM
+  - 2:47630206-47710367 # MSH3
+  - 2:48010220-48034092 # MSH6
+  - 2:148602085-148688396 # APC
+  - 2:202098165-202152434 # PMS2
+  - 3:30647993-30735633 # TGFBR2
+  - 3:37034000-37093000 # MLH1
+  - 3:41240941-41281939 # CTNNB1
+  - 3:129149787-129159022 # MBD4
+  - 3:178866310-178957881 # PIK3CA
+  - 4:153242409-153456185 # FBXW7
+  - 5:79950466-80172634 # MSH3
+  - 5:112041202-112183936 # APC
   - 7:6010555-6048737
   - 7:140432363-140624728
   - 8:30890777-31033387
@@ -123,17 +140,17 @@ regions_of_interest:
   - 12:25355723-25405865
   - 12:40787195-40964557
   - 12:102789644-102874423
-  - 12:133200348-133264110
+  - 12:133200348-133264110 # POLE
   - 13:32889616-32973809
   - 15:31196076-31235310
   - 16:2089816-2097870
-  - 17:7569720-7592868
+  - 17:7569720-7592868 # TP53
   - 17:41196311-41277500
-  - 17:56429861-56494943
-  - 17:63524683-63557766
-  - 18:45359465-45456970
-  - 18:48556582-48611411
-  - 19:50887580-50921275
+  - 17:56429861-56494943 # RNF43
+  - 17:63524683-63557766 # AXIN2
+  - 18:45359465-45456970 # SMAD2
+  - 18:48556582-48611411 # SMAD4
+  - 19:50887580-50921275 # POLD1
 
 
 loh_region_padding:
@@ -173,8 +190,11 @@ loh_region_padding:
   - 50000
   - 50000
   - 50000
+  - 50000
+  - 50000
 
 cnv_region_padding:
+  - 500000
   - 500000
   - 500000
   - 500000

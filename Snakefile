@@ -12,6 +12,9 @@ print("loaded configuration")
 # NOTE: no mitochondria MT because they aren't in our exome
 GATK_CHROMOSOMES=('1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22', 'X', 'Y')
 
+# split into many more segments to speed up WGS
+#GATK_CHROMOSOMES=('1:1-10000100', '1:9999901-20000100', '1:19999901-30000100', '1:29999901-40000100', '1:39999901-50000100', '1:49999901-60000100', '1:59999901-70000100', '1:69999901-80000100', '1:79999901-90000100', '1:89999901-100000100', '1:99999901-110000100', '1:109999901-120000100', '1:119999901-130000100', '1:129999901-140000100', '1:139999901-150000100', '1:149999901-160000100', '1:159999901-170000100', '1:169999901-180000100', '1:179999901-190000100', '1:189999901-200000100', '1:199999901-210000100', '1:209999901-220000100', '1:219999901-230000100', '1:229999901-240000100', '1:239999901-249250621', '2:1-10000100', '2:9999901-20000100', '2:19999901-30000100', '2:29999901-40000100', '2:39999901-50000100', '2:49999901-60000100', '2:59999901-70000100', '2:69999901-80000100', '2:79999901-90000100', '2:89999901-100000100', '2:99999901-110000100', '2:109999901-120000100', '2:119999901-130000100', '2:129999901-140000100', '2:139999901-150000100', '2:149999901-160000100', '2:159999901-170000100', '2:169999901-180000100', '2:179999901-190000100', '2:189999901-200000100', '2:199999901-210000100', '2:209999901-220000100', '2:219999901-230000100', '2:229999901-240000100', '2:239999901-243199373', '3:1-10000100', '3:9999901-20000100', '3:19999901-30000100', '3:29999901-40000100', '3:39999901-50000100', '3:49999901-60000100', '3:59999901-70000100', '3:69999901-80000100', '3:79999901-90000100', '3:89999901-100000100', '3:99999901-110000100', '3:109999901-120000100', '3:119999901-130000100', '3:129999901-140000100', '3:139999901-150000100', '3:149999901-160000100', '3:159999901-170000100', '3:169999901-180000100', '3:179999901-190000100', '3:189999901-198022430', '4:1-10000100', '4:9999901-20000100', '4:19999901-30000100', '4:29999901-40000100', '4:39999901-50000100', '4:49999901-60000100', '4:59999901-70000100', '4:69999901-80000100', '4:79999901-90000100', '4:89999901-100000100', '4:99999901-110000100', '4:109999901-120000100', '4:119999901-130000100', '4:129999901-140000100', '4:139999901-150000100', '4:149999901-160000100', '4:159999901-170000100', '4:169999901-180000100', '4:179999901-190000100', '4:189999901-191154276', '5:1-10000100', '5:9999901-20000100', '5:19999901-30000100', '5:29999901-40000100', '5:39999901-50000100', '5:49999901-60000100', '5:59999901-70000100', '5:69999901-80000100', '5:79999901-90000100', '5:89999901-100000100', '5:99999901-110000100', '5:109999901-120000100', '5:119999901-130000100', '5:129999901-140000100', '5:139999901-150000100', '5:149999901-160000100', '5:159999901-170000100', '5:169999901-180000100', '5:179999901-180915260', '6:1-10000100', '6:9999901-20000100', '6:19999901-30000100', '6:29999901-40000100', '6:39999901-50000100', '6:49999901-60000100', '6:59999901-70000100', '6:69999901-80000100', '6:79999901-90000100', '6:89999901-100000100', '6:99999901-110000100', '6:109999901-120000100', '6:119999901-130000100', '6:129999901-140000100', '6:139999901-150000100', '6:149999901-160000100', '6:159999901-170000100', '6:169999901-171115067', '7:1-10000100', '7:9999901-20000100', '7:19999901-30000100', '7:29999901-40000100', '7:39999901-50000100', '7:49999901-60000100', '7:59999901-70000100', '7:69999901-80000100', '7:79999901-90000100', '7:89999901-100000100', '7:99999901-110000100', '7:109999901-120000100', '7:119999901-130000100', '7:129999901-140000100', '7:139999901-150000100', '7:149999901-159138663', 'X:1-10000100', 'X:9999901-20000100', 'X:19999901-30000100', 'X:29999901-40000100', 'X:39999901-50000100', 'X:49999901-60000100', 'X:59999901-70000100', 'X:69999901-80000100', 'X:79999901-90000100', 'X:89999901-100000100', 'X:99999901-110000100', 'X:109999901-120000100', 'X:119999901-130000100', 'X:129999901-140000100', 'X:139999901-150000100', 'X:149999901-155270560', '8:1-10000100', '8:9999901-20000100', '8:19999901-30000100', '8:29999901-40000100', '8:39999901-50000100', '8:49999901-60000100', '8:59999901-70000100', '8:69999901-80000100', '8:79999901-90000100', '8:89999901-100000100', '8:99999901-110000100', '8:109999901-120000100', '8:119999901-130000100', '8:129999901-140000100', '8:139999901-146364022', '9:1-10000100', '9:9999901-20000100', '9:19999901-30000100', '9:29999901-40000100', '9:39999901-50000100', '9:49999901-60000100', '9:59999901-70000100', '9:69999901-80000100', '9:79999901-90000100', '9:89999901-100000100', '9:99999901-110000100', '9:109999901-120000100', '9:119999901-130000100', '9:129999901-140000100', '9:139999901-141213431', '10:1-10000100', '10:9999901-20000100', '10:19999901-30000100', '10:29999901-40000100', '10:39999901-50000100', '10:49999901-60000100', '10:59999901-70000100', '10:69999901-80000100', '10:79999901-90000100', '10:89999901-100000100', '10:99999901-110000100', '10:109999901-120000100', '10:119999901-130000100', '10:129999901-135534747', '11:1-10000100', '11:9999901-20000100', '11:19999901-30000100', '11:29999901-40000100', '11:39999901-50000100', '11:49999901-60000100', '11:59999901-70000100', '11:69999901-80000100', '11:79999901-90000100', '11:89999901-100000100', '11:99999901-110000100', '11:109999901-120000100', '11:119999901-130000100', '11:129999901-135006516', '12:1-10000100', '12:9999901-20000100', '12:19999901-30000100', '12:29999901-40000100', '12:39999901-50000100', '12:49999901-60000100', '12:59999901-70000100', '12:69999901-80000100', '12:79999901-90000100', '12:89999901-100000100', '12:99999901-110000100', '12:109999901-120000100', '12:119999901-130000100', '12:129999901-133851895', '13:1-10000100', '13:9999901-20000100', '13:19999901-30000100', '13:29999901-40000100', '13:39999901-50000100', '13:49999901-60000100', '13:59999901-70000100', '13:69999901-80000100', '13:79999901-90000100', '13:89999901-100000100', '13:99999901-110000100', '13:109999901-115169878', '14:1-10000100', '14:9999901-20000100', '14:19999901-30000100', '14:29999901-40000100', '14:39999901-50000100', '14:49999901-60000100', '14:59999901-70000100', '14:69999901-80000100', '14:79999901-90000100', '14:89999901-100000100', '14:99999901-107349540', '15:1-10000100', '15:9999901-20000100', '15:19999901-30000100', '15:29999901-40000100', '15:39999901-50000100', '15:49999901-60000100', '15:59999901-70000100', '15:69999901-80000100', '15:79999901-90000100', '15:89999901-100000100', '15:99999901-102531392', '16:1-10000100', '16:9999901-20000100', '16:19999901-30000100', '16:29999901-40000100', '16:39999901-50000100', '16:49999901-60000100', '16:59999901-70000100', '16:69999901-80000100', '16:79999901-90000100', '16:89999901-90354753', '17:1-10000100', '17:9999901-20000100', '17:19999901-30000100', '17:29999901-40000100', '17:39999901-50000100', '17:49999901-60000100', '17:59999901-70000100', '17:69999901-80000100', '17:79999901-81195210', '18:1-10000100', '18:9999901-20000100', '18:19999901-30000100', '18:29999901-40000100', '18:39999901-50000100', '18:49999901-60000100', '18:59999901-70000100', '18:69999901-78077248', '20:1-10000100', '20:9999901-20000100', '20:19999901-30000100', '20:29999901-40000100', '20:39999901-50000100', '20:49999901-60000100', '20:59999901-63025520', 'Y:1-10000100', 'Y:9999901-20000100', 'Y:19999901-30000100', 'Y:29999901-40000100', 'Y:39999901-50000100', 'Y:49999901-59373566', '19:1-10000100', '19:9999901-20000100', '19:19999901-30000100', '19:29999901-40000100', '19:39999901-50000100', '19:49999901-59128983', '22:1-10000100', '22:9999901-20000100', '22:19999901-30000100', '22:29999901-40000100', '22:39999901-50000100', '22:49999901-51304566', '21:1-10000100', '21:9999901-20000100', '21:19999901-30000100', '21:29999901-40000100', '21:39999901-48129895')
+
 ### helper functions ###
 def read_group(wildcards):
   '''
@@ -45,6 +48,9 @@ def germline_samples():
   all_samples = set(samples['samples'])
   tumours = set(samples['tumours'])
   return list(all_samples.difference(tumours))
+
+def tumour_samples():
+  return samples['tumours']
 
 def germline_sample(wildcards):
   return samples["tumours"][wildcards.tumour]
@@ -81,7 +87,9 @@ rule all:
     # -- expand("out/{tumour}.varscan.copynumber.deletions.bed", tumour=samples['tumours']), # TODO fails on mini sample
     expand("out/{tumour}.platypus.somatic.vcf.gz", tumour=samples['tumours']), # platypus somatic calls
     expand("out/{tumour}.loh.bed", tumour=samples['tumours']), # loh regions
+    expand("out/{tumour}.kataegis.png", tumour=samples['tumours']), # kataegis regions
 # --    expand("out/{tumour}.cnv.tsv", tumour=samples['tumours']), # cnv regions
+# --    "out/cnvkit.reference.cnn", # cnvkit
     expand("out/{tumour}.strelka.somatic.all.af.png", tumour=samples['tumours']), # plot strelka af
     expand("out/{tumour}.strelka.somatic.pass.af.png", tumour=samples['tumours']), # plot strelka af
     expand("out/{tumour}.strelka.somatic.pass.signatures.af.png", tumour=samples['tumours']), # plot strelka af
@@ -145,8 +153,8 @@ rule all:
     "out/aggregate/mutation_rate.high_af.tsv",
     "out/aggregate/mutation_rate.low_af.tsv",
     "out/aggregate/msi_burden.tsv",
-    "out/aggregate/targetted_gene_summary.somatic.tsv",
-    "out/aggregate/targetted_gene_summary.germline.tsv",
+    # -- disabled "out/aggregate/targetted_gene_summary.somatic.tsv",
+    # -- disabled "out/aggregate/targetted_gene_summary.germline.tsv",
     "out/aggregate/gene_coverage.exons.tsv",
     "out/aggregate/gene_coverage_min.tumour.exons.tsv",
     # flagged exons in regions of interest
@@ -377,8 +385,8 @@ rule qc_on_target_coverage_hist_dedup:
   output:
     hist="out/{sample}.ontarget.dedup.hist",
   shell:
-    "{config[module_samtools]} && "
     "{config[module_bedtools]} && "
+    "{config[module_samtools]} && "
     "samtools view -uF 0x400 {input.bam} > tmp/{wildcards.sample}.dedup.bam && "
     "bedtools sort -faidx reference/genome.lengths -i {input.bed} | bedtools merge -i - > tmp/{wildcards.sample}.qc_on_target_coverage_hist_dedup.bed && "
     "bedtools coverage -sorted -hist -b tmp/{wildcards.sample}.dedup.bam -a tmp/{wildcards.sample}.qc_on_target_coverage_hist_dedup.bed -g reference/genome.lengths > tmp/{wildcards.sample}.qc_on_target_coverage_hist_dedup.hist && "
@@ -544,7 +552,8 @@ rule align:
     #fastqs=lambda wildcards: samples["samples"][wildcards.sample]
 
   output:
-    "tmp/{sample}.paired.bam"
+    bam="tmp/{sample}.paired.bam",
+    sentinel="out/{sample}.paired.bam.completed"
 
   log:
     "log/{sample}.paired.bwa.log"
@@ -555,8 +564,8 @@ rule align:
 
   shell:
     "{config[module_bwa]} && {config[module_samtools]} && "
-    "(bwa mem -M -t {params.cores} -R \"{params.read_group}\" {input.reference} {input.fastq_r1} {input.fastq_r2} | samtools view -b -h -o {output} - && "
-    "rm {input.fastq_r1} {input.fastq_r2}) 2>{log}"
+    "(bwa mem -M -t {params.cores} -R \"{params.read_group}\" {input.reference} {input.fastq_r1} {input.fastq_r2} | samtools view -b -h -o {output.bam} - && "
+    "rm {input.fastq_r1} {input.fastq_r2}) 2>{log} && touch {output.sentinel}"
 
 rule align_unpaired:
   input:
@@ -588,13 +597,14 @@ rule merge_bams:
     "tmp/{sample}_R1.unpaired.bam",
     "tmp/{sample}_R2.unpaired.bam"
   output:
-    "tmp/{sample}.merged.bam"
+    bam="tmp/{sample}.merged.bam",
+    sentinel="out/{sample}.merged.bam.complete"
   log:
     "log/{sample}.merge.log"
   shell:
     "{config[module_samtools]} && "
-    "(samtools merge {output} {input} 2>{log}) && "
-    "rm {input}"
+    "(samtools merge {output.bam} {input} 2>{log}) && "
+    "rm {input} && touch {output.sentinel}"
 
 # sort the bam
 rule sort:
@@ -603,12 +613,13 @@ rule sort:
 
   output:
     bam="tmp/{sample}.sorted.bam",
-    bai="tmp/{sample}.sorted.bai"
+    bai="tmp/{sample}.sorted.bai",
+    sentinel="out/{sample}.sorted.bam.sentinel"
 
   shell:
     "{config[module_java]} && "
     "java -jar tools/picard-2.8.2.jar SortSam INPUT={input} OUTPUT={output.bam} VALIDATION_STRINGENCY=LENIENT SORT_ORDER=coordinate MAX_RECORDS_IN_RAM=2000000 CREATE_INDEX=True && "
-    "rm {input}"
+    "rm {input} && touch {output.sentinel}"
 
 # duplicates
 rule gatk_duplicates:
@@ -649,7 +660,7 @@ rule gatk_joint_genotype:
     gvcfs=expand("out/{germline}.hc.gvcf.gz", germline=germline_samples()),
     reference=config["genome"]
   output:
-    "out/germline_joint_{chromosome}.vcf"
+    "tmp/germline_joint_{chromosome}.vcf"
   log:
     "log/gatk_joint_{chromosome}.stderr"
   params:
@@ -657,7 +668,7 @@ rule gatk_joint_genotype:
   shell:
     "({config[module_java]} && "
     "java -jar tools/GenomeAnalysisTK-3.7.0.jar -T CombineGVCFs -R {input.reference} {params.variant_list} -L {wildcards.chromosome} -o tmp/germline_combined_{wildcards.chromosome}.gvcf && "
-    "tools/gatk-4.0.0.0/gatk GenotypeGVCFs -R {input.reference} --dbsnp reference/gatk-4-bundle-b37/dbsnp_138.b37.vcf.bgz -V tmp/germline_combined_{wildcards.chromosome}.gvcf -L {wildcards.chromosome} --use-new-qual-calculator true --output out/germline_joint_{wildcards.chromosome}.vcf"
+    "tools/gatk-4.0.0.0/gatk GenotypeGVCFs -R {input.reference} --dbsnp reference/gatk-4-bundle-b37/dbsnp_138.b37.vcf.bgz -V tmp/germline_combined_{wildcards.chromosome}.gvcf -L {wildcards.chromosome} --use-new-qual-calculator true --output tmp/germline_joint_{wildcards.chromosome}.vcf"
     ") 2>{log}"
 
 # call germline variants on the tumour for validation
@@ -666,7 +677,7 @@ rule gatk_joint_genotype_tumours:
     gvcfs=expand("out/{germline}.hc.gvcf.gz", germline=samples["tumours"]),
     reference=config["genome"]
   output:
-    "out/tumour_joint_{chromosome}.vcf"
+    "tmp/tumour_joint_{chromosome}.vcf"
   log:
     "log/gatk_joint_tumour_{chromosome}.stderr"
   params:
@@ -681,14 +692,14 @@ rule gatk_joint_genotype_tumours:
 #   VariantRecalibrator removed due to large cohort size requirements
 rule gatk_post_genotype:
   input:
-    gvcfs=expand("out/germline_joint_{chromosome}.vcf", chromosome=GATK_CHROMOSOMES),
+    gvcfs=expand("tmp/germline_joint_{chromosome}.vcf", chromosome=GATK_CHROMOSOMES),
     reference=config["genome"]
   output:
     "out/germline_joint.hc.normalized.vcf"
   log:
     "log/gatk_post.stderr"
   params:
-    inputs=' '.join(['--INPUT={}'.format(gvcf) for gvcf in expand("out/germline_joint_{chromosome}.vcf", chromosome=GATK_CHROMOSOMES)])
+    inputs=' '.join(['--INPUT={}'.format(gvcf) for gvcf in expand("tmp/germline_joint_{chromosome}.vcf", chromosome=GATK_CHROMOSOMES)])
   shell:
     "({config[module_java]} && {config[module_R]} && {config[module_samtools]} && "
     "{config[module_htslib]} && "
@@ -701,14 +712,14 @@ rule gatk_post_genotype:
 
 rule gatk_post_genotype_tumours:
   input:
-    gvcfs=expand("out/tumour_joint_{chromosome}.vcf", chromosome=GATK_CHROMOSOMES),
+    gvcfs=expand("tmp/tumour_joint_{chromosome}.vcf", chromosome=GATK_CHROMOSOMES),
     reference=config["genome"]
   output:
     "out/tumour_joint.hc.normalized.vcf"
   log:
     "log/gatk_post.stderr"
   params:
-    inputs=' '.join(['--INPUT={}'.format(gvcf) for gvcf in expand("out/tumour_joint_{chromosome}.vcf", chromosome=GATK_CHROMOSOMES)])
+    inputs=' '.join(['--INPUT={}'.format(gvcf) for gvcf in expand("tmp/tumour_joint_{chromosome}.vcf", chromosome=GATK_CHROMOSOMES)])
   shell:
     "({config[module_java]} && {config[module_R]} && {config[module_samtools]} && "
     "{config[module_htslib]} && "
@@ -819,7 +830,7 @@ rule strelka_somatic:
     "--tumorBam {input.bams[0]} "
     "--normalBam {input.bams[1]} "
     "--runDir tmp/strelka_{wildcards.tumour}_$$ "
-    "--exome && "
+    "{config[strelka_params]} && "
     "tmp/strelka_{wildcards.tumour}_$$/runWorkflow.py -m local -j {params.cores} && "
     "mv tmp/strelka_{wildcards.tumour}_$$/results/variants/somatic.snvs.vcf.gz {output[0]} && " 
     "mv tmp/strelka_{wildcards.tumour}_$$/results/variants/somatic.indels.vcf.gz {output[1]} && " 
@@ -949,7 +960,7 @@ rule strelka_germline:
     "--referenceFasta {input.reference} "
     "--bam {input.bam} "
     "--runDir tmp/strelka_{wildcards.germline}_$$ "
-    "--exome && "
+    "{config[strelka_params]} && "
     "tmp/strelka_{wildcards.germline}_$$/runWorkflow.py -m local -j {params.cores} && "
     "mv tmp/strelka_{wildcards.germline}_$$/results/variants/variants.vcf.gz {output[0]} && " 
     "mv tmp/strelka_{wildcards.germline}_$$/results/variants/variants.vcf.gz.tbi {output[1]} && " 
@@ -1170,6 +1181,7 @@ rule filter_germline:
     "src/ad_to_af.py | "
     "csvmap.py --delimiter '	' --map 'vep_gnomAD_AF,,0' | "
     "csvfilter.py --delimiter '	' --filter 'DP>30' 'VAF>0.05' 'vep_gnomAD_AF<0.01' | "
+    "csvfilter.py --delimiter '	' --any --filter 'CLNSIG%Pathogenic' 'CLNSIG=.' 'CLNSIG=Uncertain_significance' | "
     "gzip > {output}"
 
 
@@ -1258,8 +1270,8 @@ rule intersect_somatic_callers:
     stderr="log/{tumour}.intersect.log"
   shell:
     "({config[module_samtools]} && "
-    "{config[module_htslib]} && "
     "{config[module_bedtools]} && "
+    "{config[module_htslib]} && "
     "src/vcf_intersect.py --allowed_filters str_contraction LowDepth --inputs {input.strelka_snvs} {input.mutect2} > tmp/{wildcards.tumour}.intersect.unsorted.vcf && "
     "src/vcf_intersect.py --allowed_filters str_contraction LowDepth --inputs {input.strelka_indels} {input.mutect2} | sed -n '/^#/!p' >> tmp/{wildcards.tumour}.intersect.unsorted.vcf && "
     "grep '^#' tmp/{wildcards.tumour}.intersect.unsorted.vcf > tmp/{wildcards.tumour}.intersect.vcf && "
@@ -1279,8 +1291,8 @@ rule pass_one_somatic_callers:
     stderr="log/{tumour}.pass_one.log"
   shell:
     "({config[module_samtools]} && "
-    "{config[module_htslib]} && "
     "{config[module_bedtools]} && "
+    "{config[module_htslib]} && "
     "src/vcf_intersect.py --allowed_filters str_contraction LowDepth --inputs {input.strelka_snvs} {input.mutect2} --pass_one > tmp/{wildcards.tumour}.pass_one.unsorted.vcf && " # snvs vs mutect
     "src/vcf_intersect.py --allowed_filters str_contraction LowDepth --inputs {input.strelka_indels} {input.mutect2} --pass_one | sed -n '/^#/!p' >> tmp/{wildcards.tumour}.pass_one.unsorted.vcf && " # indels vs mutect
     "grep '^#' tmp/{wildcards.tumour}.pass_one.unsorted.vcf > tmp/{wildcards.tumour}.pass_one.vcf && " # header
@@ -1300,8 +1312,8 @@ rule intersect_pass_somatic_callers:
     stderr="log/{tumour}.intersect.log"
   shell:
     "({config[module_samtools]} && "
-    "{config[module_htslib]} && "
     "{config[module_bedtools]} && "
+    "{config[module_htslib]} && "
     "src/vcf_intersect.py --allowed_filters str_contraction LowDepth --inputs {input.strelka_snvs} {input.mutect2} > tmp/{wildcards.tumour}.intersect.unsorted.pass.vcf && " # snvs vs mutect
     "src/vcf_intersect.py --allowed_filters str_contraction LowDepth --inputs {input.strelka_indels} {input.mutect2} | sed -n '/^#/!p' >> tmp/{wildcards.tumour}.intersect.unsorted.pass.vcf && " # indels vs mutect
     "grep '^#' tmp/{wildcards.tumour}.intersect.unsorted.pass.vcf > tmp/{wildcards.tumour}.intersect.pass.vcf && " # header
@@ -1477,7 +1489,7 @@ rule intersect_tsv:
     "out/{tumour}.intersect.pass.filter.annot.tsv"
   shell:
     "src/vcf2tsv.py {input.vcf} | "
-    "src/extract_vep.py --header 'Consequence|IMPACT|Codons|Amino_acids|Gene|SYMBOL|Feature|EXON|PolyPhen|SIFT|Protein_position|BIOTYPE|HGVSc|HGVSp|cDNA_position|CDS_position|HGVSc|HGVSp|cDNA_position|CDS_position|gnomAD_AF|gnomAD_AFR_AF|gnomAD_AMR_AF|gnomAD_ASJ_AF|gnomAD_EAS_AF|gnomAD_FIN_AF|gnomAD_NFE_AF|gnomAD_OTH_AF|gnomAD_SAS_AF|MaxEntScan_alt|MaxEntScan_diff|MaxEntScan_ref|PICK' >{output}"
+    "src/extract_vep.py --header 'Consequence|IMPACT|Codons|Amino_acids|Gene|SYMBOL|Feature|EXON|PolyPhen|SIFT|Protein_position|BIOTYPE|HGVSc|HGVSp|cDNA_position|CDS_position|HGVSc|HGVSp|cDNA_position|CDS_position|gnomAD_AF|gnomAD_AFR_AF|gnomAD_AMR_AF|gnomAD_ASJ_AF|gnomAD_EAS_AF|gnomAD_FIN_AF|gnomAD_NFE_AF|gnomAD_OTH_AF|gnomAD_SAS_AF|MaxEntScan_alt|MaxEntScan_diff|MaxEntScan_ref|PICK|CANONICAL' --transcript CANONICAL=YES >{output}"
 
 rule combine_mutect2_tsv:
   input:
@@ -1494,7 +1506,7 @@ rule mutect2_tsv:
     "out/{tumour}.mutect2.filter.annot.tsv"
   shell:
     "src/vcf2tsv.py {input.vcf} | "
-    "src/extract_vep.py --header 'Consequence|IMPACT|Codons|Amino_acids|Gene|SYMBOL|Feature|EXON|PolyPhen|SIFT|Protein_position|BIOTYPE|HGVSc|HGVSp|cDNA_position|CDS_position|HGVSc|HGVSp|cDNA_position|CDS_position|gnomAD_AF|gnomAD_AFR_AF|gnomAD_AMR_AF|gnomAD_ASJ_AF|gnomAD_EAS_AF|gnomAD_FIN_AF|gnomAD_NFE_AF|gnomAD_OTH_AF|gnomAD_SAS_AF|MaxEntScan_alt|MaxEntScan_diff|MaxEntScan_ref|PICK' >{output}"
+    "src/extract_vep.py --header 'Consequence|IMPACT|Codons|Amino_acids|Gene|SYMBOL|Feature|EXON|PolyPhen|SIFT|Protein_position|BIOTYPE|HGVSc|HGVSp|cDNA_position|CDS_position|HGVSc|HGVSp|cDNA_position|CDS_position|gnomAD_AF|gnomAD_AFR_AF|gnomAD_AMR_AF|gnomAD_ASJ_AF|gnomAD_EAS_AF|gnomAD_FIN_AF|gnomAD_NFE_AF|gnomAD_OTH_AF|gnomAD_SAS_AF|MaxEntScan_alt|MaxEntScan_diff|MaxEntScan_ref|PICK|CANONICAL' --transcript CANONICAL=YES >{output}"
 
 rule germline_tsv:
   input:
@@ -1503,7 +1515,7 @@ rule germline_tsv:
     "out/aggregate/germline_joint.hc.normalized.annot.revel.clinvar.tsv.gz"
   shell:
     "src/vcf2tsv.py {input.vcf} | "
-    "src/extract_vep.py --header 'Consequence|IMPACT|Codons|Amino_acids|Gene|SYMBOL|Feature|EXON|PolyPhen|SIFT|Protein_position|BIOTYPE|HGVSc|HGVSp|cDNA_position|CDS_position|HGVSc|HGVSp|cDNA_position|CDS_position|gnomAD_AF|gnomAD_AFR_AF|gnomAD_AMR_AF|gnomAD_ASJ_AF|gnomAD_EAS_AF|gnomAD_FIN_AF|gnomAD_NFE_AF|gnomAD_OTH_AF|gnomAD_SAS_AF|MaxEntScan_alt|MaxEntScan_diff|MaxEntScan_ref|PICK' | python tools/csvtools-{config[csvtools_version]}/csvtools/csvfilter.py --delimiter '	' --filters 'GT!0/0' 'GT!./.' | gzip >{output}"
+    "src/extract_vep.py --header 'Consequence|IMPACT|Codons|Amino_acids|Gene|SYMBOL|Feature|EXON|PolyPhen|SIFT|Protein_position|BIOTYPE|HGVSc|HGVSp|cDNA_position|CDS_position|HGVSc|HGVSp|cDNA_position|CDS_position|gnomAD_AF|gnomAD_AFR_AF|gnomAD_AMR_AF|gnomAD_ASJ_AF|gnomAD_EAS_AF|gnomAD_FIN_AF|gnomAD_NFE_AF|gnomAD_OTH_AF|gnomAD_SAS_AF|MaxEntScan_alt|MaxEntScan_diff|MaxEntScan_ref|PICK|CANONICAL' --transcript CANONICAL=YES | python tools/csvtools-{config[csvtools_version]}/csvtools/csvfilter.py --delimiter '	' --filters 'GT!0/0' 'GT!./.' | gzip >{output}"
 
 rule combine_genes_of_interest:
   input:
@@ -1525,7 +1537,7 @@ rule filter_genes_of_interest_tumour:
     gene_list=' '.join(config["genes_of_interest"])
   shell:
     "src/vcf2tsv.py {input.vcf} | "
-    "src/extract_vep.py --header 'Consequence|IMPACT|Codons|Amino_acids|Gene|SYMBOL|Feature|EXON|PolyPhen|SIFT|Protein_position|BIOTYPE|HGVSc|HGVSp|cDNA_position|CDS_position|HGVSc|HGVSp|cDNA_position|CDS_position|gnomAD_AF|gnomAD_AFR_AF|gnomAD_AMR_AF|gnomAD_ASJ_AF|gnomAD_EAS_AF|gnomAD_FIN_AF|gnomAD_NFE_AF|gnomAD_OTH_AF|gnomAD_SAS_AF|MaxEntScan_alt|MaxEntScan_diff|MaxEntScan_ref|PICK' | "
+    "src/extract_vep.py --header 'Consequence|IMPACT|Codons|Amino_acids|Gene|SYMBOL|Feature|EXON|PolyPhen|SIFT|Protein_position|BIOTYPE|HGVSc|HGVSp|cDNA_position|CDS_position|HGVSc|HGVSp|cDNA_position|CDS_position|gnomAD_AF|gnomAD_AFR_AF|gnomAD_AMR_AF|gnomAD_ASJ_AF|gnomAD_EAS_AF|gnomAD_FIN_AF|gnomAD_NFE_AF|gnomAD_OTH_AF|gnomAD_SAS_AF|MaxEntScan_alt|MaxEntScan_diff|MaxEntScan_ref|PICK|CANONICAL' --transcript CANONICAL=YES | "
     "src/filter_tsv.py --column vep_SYMBOL --values {params.gene_list} > {output}"
 
 # TODO
@@ -1540,7 +1552,7 @@ rule filter_genes_of_interest_tumour:
 #    gene_list=' '.join(config["genes_of_interest"])
 #  shell:
 #    "src/vcf2tsv.py {input.vcf} | "
-#    "src/extract_vep.py --header 'Consequence|IMPACT|Codons|Amino_acids|Gene|SYMBOL|Feature|EXON|PolyPhen|SIFT|Protein_position|BIOTYPE|HGVSc|HGVSp|cDNA_position|CDS_position|HGVSc|HGVSp|cDNA_position|CDS_position|gnomAD_AF|gnomAD_AFR_AF|gnomAD_AMR_AF|gnomAD_ASJ_AF|gnomAD_EAS_AF|gnomAD_FIN_AF|gnomAD_NFE_AF|gnomAD_OTH_AF|gnomAD_SAS_AF|MaxEntScan_alt|MaxEntScan_diff|MaxEntScan_ref|PICK' | "
+#    "src/extract_vep.py --header 'Consequence|IMPACT|Codons|Amino_acids|Gene|SYMBOL|Feature|EXON|PolyPhen|SIFT|Protein_position|BIOTYPE|HGVSc|HGVSp|cDNA_position|CDS_position|HGVSc|HGVSp|cDNA_position|CDS_position|gnomAD_AF|gnomAD_AFR_AF|gnomAD_AMR_AF|gnomAD_ASJ_AF|gnomAD_EAS_AF|gnomAD_FIN_AF|gnomAD_NFE_AF|gnomAD_OTH_AF|gnomAD_SAS_AF|MaxEntScan_alt|MaxEntScan_diff|MaxEntScan_ref|PICK|CANONICAL' --transcript CANONICAL=YES | "
 #    "src/filter_tsv.py --column vep_SYMBOL --values {params.gene_list} > {output}"
 
 # ----- mutational signatures
@@ -1962,7 +1974,7 @@ rule copy_number_varscan_post:
     "src/varscan_cnv_post.R --in tmp/{params.tumour}.varscan.nohead --out out/{params.tumour}.varscan.merged && " # 1       13360   16851   10      0.7773
     "awk -v OFS='\t' '{{ if ($5 < -0.1) {{len=$3-$2; print $1, $2, $3, \"logR=\" $5 \";length=\" len \";markers=\" $4}} }}' < out/{params.tumour}.varscan.merged > {output}"
 
-# burden exonic snvs
+# burden snvs
 rule mutation_burden_low_af:
   input:
     vcfs=expand("out/{tumour}.intersect.pass.vcf.gz", tumour=samples['tumours']),
@@ -1974,7 +1986,7 @@ rule mutation_burden_low_af:
   shell:
     "src/mutation_rate.py --verbose --vcfs {input.vcfs} --bed {input.regions} --min_af 0.01 >{output} 2>{log.stderr}"
 
-# burden exonic snvs
+# burden snvs
 rule mutation_burden_high_af:
   input:
     vcfs=expand("out/{tumour}.intersect.pass.filter.vcf.gz", tumour=samples['tumours']),
@@ -1986,7 +1998,7 @@ rule mutation_burden_high_af:
   shell:
     "src/mutation_rate.py --verbose --vcfs {input.vcfs} --bed {input.regions} --min_af 0.2 >{output} 2>{log.stderr}"
 
-# burden exonic snvs
+# burden snvs
 rule mutation_burden:
   input:
     vcfs=expand("out/{tumour}.intersect.pass.filter.vcf.gz", tumour=samples['tumours']),
@@ -1998,7 +2010,7 @@ rule mutation_burden:
   shell:
     "src/mutation_rate.py --verbose --vcfs {input.vcfs} --bed {input.regions} >{output} 2>{log.stderr}"
 
-# burden exonic indels 
+# burden indels 
 rule msi_burden:
   input:
     vcfs=expand("out/{tumour}.strelka.somatic.indels.norm.annot.pass.vcf.gz", tumour=samples['tumours']),
@@ -2056,7 +2068,9 @@ rule plot_af_mutect2:
   output:
     "out/{tumour}.mutect2.somatic.af.png"
   shell:
-    "src/plot_af.py --log --sample {wildcards.tumour} --target {output} --dp {config[dp_threshold]} < {input}"
+    "src/plot_af.py --verbose --log --sample {wildcards.tumour} --target {output} --dp {config[dp_threshold]} --vep_format 'Consequence|IMPACT|Codons|Amino_acids|Gene|SYMBOL|Feature|EXON|PolyPhen|SIFT|Protein_position|BIOTYPE|HGVSc|HGVSp|cDNA_position|CDS_position|HGVSc|HGVSp|cDNA_position|CDS_position|gnomAD_AF|gnomAD_AFR_AF|gnomAD_AMR_AF|gnomAD_ASJ_AF|gnomAD_EAS_AF|gnomAD_FIN_AF|gnomAD_NFE_AF|gnomAD_OTH_AF|gnomAD_SAS_AF|MaxEntScan_alt|MaxEntScan_diff|MaxEntScan_ref|PICK|CANONICAL' --genes {config[af_genes]} --impacts HIGH --gene_colors {config[af_gene_colors]} < {input}"
+
+#"src/plot_af.py --log --sample {wildcards.tumour} --target {output} --dp {config[dp_threshold]} --vep_format "Consequence|IMPACT|Codons|Amino_acids|Gene|SYMBOL|Feature|EXON|PolyPhen|SIFT|Protein_position|BIOTYPE|HGVSc|HGVSp|cDNA_position|CDS_position|HGVSc|HGVSp|cDNA_position|CDS_position|gnomAD_AF|gnomAD_AFR_AF|gnomAD_AMR_AF|gnomAD_ASJ_AF|gnomAD_EAS_AF|gnomAD_FIN_AF|gnomAD_NFE_AF|gnomAD_OTH_AF|gnomAD_SAS_AF|MaxEntScan_alt|MaxEntScan_diff|MaxEntScan_ref|PICK|CANONICAL" --genes {config[af_genes]} --consequences {config[af_consequences]} < {input}"
 
 #####################
 # loh
@@ -2075,10 +2089,10 @@ rule loh:
     region_names=' '.join(config["genes_of_interest"]),
     region_padding=' '.join([str(x) for x in config["loh_region_padding"]])
   shell:
-    "(tools/loh_caller-{config[loh_version]}/loh.py --germline NORMAL --tumour TUMOR --filtered_variants --min_dp_germline 10 --min_dp_tumour 20 --neutral --min_af 0.1 < {input.snvs} > tmp/{params.tumour}.loh.snvs.tsv && "
-    "tools/loh_caller-{config[loh_version]}/loh.py --germline NORMAL --tumour TUMOR --filtered_variants --min_dp_germline 10 --min_dp_tumour 20 --neutral --min_af 0.1 < {input.indels} > tmp/{params.tumour}.loh.indels.tsv && "
+    "(tools/LOHdeTerminator-{config[loh_version]}/loh.py --germline NORMAL --tumour TUMOR --filtered_variants --min_dp_germline 10 --min_dp_tumour 30 --neutral --min_af 0.1 < {input.snvs} > tmp/{params.tumour}.loh.snvs.tsv && "
+    "tools/LOHdeTerminator-{config[loh_version]}/loh.py --germline NORMAL --tumour TUMOR --filtered_variants --min_dp_germline 10 --min_dp_tumour 30 --neutral --min_af 0.1 < {input.indels} > tmp/{params.tumour}.loh.indels.tsv && "
     "sort -k1,1 -k2,2n tmp/{params.tumour}.loh.snvs.tsv tmp/{params.tumour}.loh.indels.tsv > {output.tsv} && "
-    "tools/loh_caller-{config[loh_version]}/loh_merge.py --verbose --noheader --min_len 1000 --min_prop 0.1 --plot out/{params.tumour}.loh --regions {params.regions} --region_names {params.region_names} --region_padding {params.region_padding} --plot_chromosomes <{output.tsv} >{output.bed}) 2>{log.stderr}"
+    "tools/LOHdeTerminator-{config[loh_version]}/loh_merge.py --verbose --noheader --min_len 1000 --min_prop 0.1 --min_count 2 --max_loh_without_evidence 10000000 --plot out/{params.tumour}.loh --regions {params.regions} --region_names {params.region_names} --region_padding {params.region_padding} --plot_chromosomes <{output.tsv} >{output.bed}) 2>{log.stderr}"
 
 rule loh_summary:
   input:
@@ -2092,7 +2106,58 @@ rule loh_summary:
     "src/combine_loh.py --min_accept 2 --lohs {input.beds} --transcripts {input.transcripts} >{output} 2>{log.stderr}"
 
 #####################
-# cnv
+# cnv not working yet
+
+# cnvkit
+#rule cnvkit_prep:
+#  input:
+#    tumours=expand("out/{sample}.sorted.dups.bam", sample=tumour_samples()),
+#    germlines=expand("out/{sample}.sorted.dups.bam", sample=germline_samples()),
+#    bed=config["regions"],
+#    reference=config["genome"]
+#  output:
+#    "out/cnvkit.reference.cnn"
+#  shell:
+#    "cnvkit.py access {input.reference} -o tmp/access.hg19.bed && "
+#    "cnvkit.py autobin {input.tumours} {input.germlines} -t {input.bed} -g tmp/access.hg19.bed --annotate {config[refflat]} --short-names && "
+#    "(for bam in {input.tumours} {input.germlines}; do "
+#      "cnvkit.py coverage $bam {input.bed} -o ${bam}.targetcoverage.cnn && "
+#      cnvkit.py coverage $bam baits.antitarget.bed -o Sample.antitargetcoverage.cnn
+
+#rule cnvkit_coverage:
+# With all normal samples...
+#cnvkit.py reference *Normal.{,anti}targetcoverage.cnn --fasta hg19.fa -o my_reference.cnn
+
+# For each tumor sample...
+#cnvkit.py fix Sample.targetcoverage.cnn Sample.antitargetcoverage.cnn my_reference.cnn -o Sample.cnr
+#cnvkit.py segment Sample.cnr -o Sample.cns
+
+# Optionally, with --scatter and --diagram
+#cnvkit.py scatter Sample.cnr -s Sample.cns -o Sample-scatter.pdf
+#cnvkit.py diagram Sample.cnr -s Sample.cns -o Sample-diagram.pdf
+
+
+#rule cnvkit:
+#  input:
+#    tumours=expand("out/{sample}.sorted.dups.bam", sample=tumour_samples()),
+#    germlines=expand("out/{sample}.sorted.dups.bam", sample=germline_samples()),
+#    bed=config["regions"],
+#    reference=config["genome"]
+#  output:
+#    "out/cnvkit.reference.cnn"
+#  shell:
+#    "{config[module_R]} && "
+#    "cnvkit.py batch {input.tumours} "
+#      "--normal {input.germlines} "
+#      "--targets {input.bed} "
+#      "--annotate {config[refflat]} "
+#      "--fasta {input.reference} "
+#      "--access {config[cnvkit_access]} "
+#      "--output-reference out/cnvkit.reference.cnn --output-dir out/ "
+#      "--segment-method hmm "
+#      "--diagram --scatter"
+
+# this is an experimental in-house CNV caller
 rule cnv_caller:
   input:
     bams=tumour_germline_bams,
@@ -2126,6 +2191,8 @@ rule cnv_summary:
   shell:
     "tools/cnv_caller-{config[cnv_version]}/cnv_caller/group.py --plot out/{wildcards.tumour}.cnv --regions {params.regions} --region_names {params.region_names} --region_padding {params.region_padding} <{input} >{output} 2>{log}"
 
+######################
+# msi
 rule msisensor_prep:
   input:
     reference=config["genome"]
@@ -2252,10 +2319,22 @@ rule cadd_prepare:
   output:
     cadd="out/cadd.vcf.gz"
   shell:
-    "{config[module_bedtools]} && "
     "{config[module_htslib]} && "
+    "{config[module_bedtools]} && "
     "bedtools intersect -a {input.cadd} -b {input.regions} -header | bgzip > {output.cadd} && "
     "tabix -p vcf {output.cadd}"
+
+##### kataegis #####
+#    "tools/kataegis-{config[kataegis_version]}/kataegis/annotate.py --plot_genome {output} --plot_prefix out/${tumour}.kataegis.zoomed. --just_kataegis < $f | bgzip > out/${t}.kataegis.vcf.gz"
+rule kataegis:
+  input:
+    vcf="out/{tumour}.intersect.pass.filter.vcf.gz"
+  output:
+    png="out/{tumour}.kataegis.png",
+    vcf="out/{tumour}.kataegis.vcf.gz"
+  shell:
+    "{config[module_htslib]} && "
+    "tools/kataegis-{config[kataegis_version]}/kataegis/annotate.py --plot_genome {output.png} --just_kataegis < {input.vcf} | bgzip > {output.vcf}"
 
 ### not working
 # tumour purity - currently not working
@@ -2304,7 +2383,7 @@ rule somatic_variant_summary:
     "src/targetted_gene_plot.py --target {output.png} < {output.tsv}"
 
 
-# somatic
+# germline
 rule germline_variant_summary:
   input:
     vcf="out/aggregate/germline_joint.hc.normalized.annot.revel.clinvar.vcf.gz"

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 '''
-  given tumour and normal vcf pairs, explore msi status
+  given a tsv containing a vep field, explode that out into new columns
 '''
 
 import argparse
@@ -9,9 +9,11 @@ import logging
 import sys
 
 
-def main(vep_header):
+def main(vep_header, transcript):
   logging.info('starting...')
   vep_fields = vep_header.split('|')
+  transcript_field, transcript_value = transcript.split('=')
+  transcript_field_idx = vep_fields.index(transcript_field)
   header = None
   writer = csv.writer(sys.stdout, delimiter='\t')
   for row_count, row in enumerate(csv.reader(sys.stdin, delimiter='\t')):
@@ -26,14 +28,22 @@ def main(vep_header):
       continue
 
     if csq < len(row):
+      found = False
       for tx in row[csq].split(','):
         vep_cols = tx.split('|')
-        if vep_cols[-1] == '1':
-          break
-      new_row = row[:csq] + vep_cols + row[csq+1:]
-      writer.writerow(new_row)
+        if len(vep_cols) > transcript_field_idx and vep_cols[transcript_field_idx] == transcript_value:
+          # report multiple canonicals
+          found = True
+          new_row = row[:csq] + vep_cols + row[csq+1:]
+          writer.writerow(new_row)
+
+      if not found:
+        logging.warn('line %i: transcript matching %s not found. writing anyway.', row_count, transcript)
+        new_row = row[:csq] + vep_cols + row[csq+1:]
+        writer.writerow(new_row)
+
     else:
-      logging.info('skipping line %i: only %i rows, need %i', row_count, len(row), csq + 1)
+      logging.warn('skipping line %i: only %i rows, need %i', row_count, len(row), csq + 1)
 
     if row_count % 10000 == 0:
       logging.info('%i records read...', row_count)
@@ -41,8 +51,9 @@ def main(vep_header):
   logging.info('done')
 
 if __name__ == '__main__':
-  parser = argparse.ArgumentParser(description='Assess MSI')
+  parser = argparse.ArgumentParser(description='Explode VEP fields')
   parser.add_argument('--header', required=True, help='vep header')
+  parser.add_argument('--transcript', required=False, default='PICK=1', help='which transcript field=value')
   parser.add_argument('--verbose', action='store_true', help='more logging')
   args = parser.parse_args()
   if args.verbose:
@@ -50,5 +61,5 @@ if __name__ == '__main__':
   else:
     logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s', level=logging.INFO)
 
-  main(args.header)
+  main(args.header, args.transcript)
 

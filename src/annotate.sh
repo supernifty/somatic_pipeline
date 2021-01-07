@@ -18,9 +18,15 @@ THREADS=$4
 
 THREADS=1 # ignore threads parameter due to vep errors
 
-VEPPATH=/data/projects/punim0567/programs/vep/ensembl-vep/
-CACHE=$VEPPATH/data/
-export PERL5LIB=$PERL5LIB:/data/projects/punim0567/programs/vep/ensembl-vep/:tools/vep
+# 94
+#VEPPATH=/data/projects/punim0567/programs/vep/ensembl-vep/
+#CACHE=$VEPPATH/data/ # 94
+#export PERL5LIB=$PERL5LIB:/data/projects/punim0567/programs/vep/ensembl-vep/:tools/vep
+
+# 102
+VEPPATH=./tools/vep/ensembl-vep/
+CACHE=./tools/vep/data/ 
+export PERL5LIB=$PERL5LIB:$(pwd)/tools/vep/ensembl-vep/:$(pwd)/tools/vep
 
 $VEPPATH/vep \
     --cache \
@@ -35,10 +41,13 @@ $VEPPATH/vep \
     --af_gnomad \
     --format vcf \
     --force_overwrite --vcf \
-    --fields Consequence,IMPACT,Codons,Amino_acids,Gene,SYMBOL,Feature,EXON,PolyPhen,SIFT,Protein_position,BIOTYPE,HGVSc,HGVSp,cDNA_position,CDS_position,HGVSc,HGVSp,cDNA_position,CDS_position,gnomAD_AF,gnomAD_AFR_AF,gnomAD_AMR_AF,gnomAD_ASJ_AF,gnomAD_EAS_AF,gnomAD_FIN_AF,gnomAD_NFE_AF,gnomAD_OTH_AF,gnomAD_SAS_AF,MaxEntScan_alt,MaxEntScan_diff,MaxEntScan_ref,PICK \
+    --fields Consequence,IMPACT,Codons,Amino_acids,Gene,SYMBOL,Feature,EXON,PolyPhen,SIFT,Protein_position,BIOTYPE,HGVSc,HGVSp,cDNA_position,CDS_position,HGVSc,HGVSp,cDNA_position,CDS_position,gnomAD_AF,gnomAD_AFR_AF,gnomAD_AMR_AF,gnomAD_ASJ_AF,gnomAD_EAS_AF,gnomAD_FIN_AF,gnomAD_NFE_AF,gnomAD_OTH_AF,gnomAD_SAS_AF,MaxEntScan_alt,MaxEntScan_diff,MaxEntScan_ref,PICK,CANONICAL \
     --fork $THREADS \
     --flag_pick \
-    --plugin MaxEntScan,$VEPPATH/data/MaxEntScan/
+    --canonical \
+    --plugin MaxEntScan,$CACHE/MaxEntScan/
+
+#    --plugin MaxEntScan,$VEPPATH/data/MaxEntScan/
 
 bgzip < ${OUTPUT}.tmp.vcf > $OUTPUT
 rm ${OUTPUT}.tmp.vcf

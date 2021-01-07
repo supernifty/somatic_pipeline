@@ -6,6 +6,7 @@
 import argparse
 import collections
 import logging
+import math
 import random
 import sys
 
@@ -21,7 +22,7 @@ import cyvcf2
 
 colors = {"SBS1": "#de3860", "SBS2": "#41ac2f", "SBS3": "#7951d0", "SBS4": "#73d053", "SBS5": "#b969e9", "SBS6": "#91ba2c", "SBS7a": "#b4b42f", "SBS7b": "#5276ec", "SBS7c": "#daae36", "SBS7d": "#9e40b5", "SBS8": "#43c673", "SBS9": "#dd4cb0", "SBS10a": "#3d9332", "SBS10b": "#de77dd", "SBS11": "#7bad47", "SBS12": "#9479e8", "SBS13": "#487b21", "SBS14": "#a83292", "SBS15": "#83c67d", "SBS16": "#664db1", "SBS17a": "#e18d28", "SBS17b": "#588de5", "SBS18": "#e2672a", "SBS19": "#34c7dd", "SBS20": "#cf402b", "SBS21": "#5acdaf", "SBS22": "#d74587", "SBS23": "#428647", "SBS24": "#7b51a7", "SBS25": "#b4ba64", "SBS26": "#646cc1", "SBS27": "#a27f1f", "SBS28": "#3b63ac", "SBS29": "#dca653", "SBS30": "#505099", "SBS31": "#7d8529", "SBS32": "#bf8ade", "SBS33": "#516615", "SBS34": "#b65da7", "SBS35": "#57a87a", "SBS36": "#c84249", "SBS37": "#37b5b1", "SBS38": "#a14622", "SBS39": "#58b5e1", "SBS40": "#ba6e2f", "SBS41": "#589ed8", "SBS42": "#e98261", "SBS43": "#3176ae", "SBS44": "#656413", "SBS45": "#a19fe2", "SBS46": "#756121", "SBS47": "#7e4a8d", "SBS48": "#326a38", "SBS49": "#dd8abf", "SBS50": "#1a6447", "SBS51": "#e78492", "SBS52": "#30876c", "SBS53": "#9d4d7c", "SBS54": "#919d5b", "SBS55": "#9d70ac", "SBS56": "#5b6f34", "SBS57": "#65659c", "SBS58": "#c9a865", "SBS59": "#a1455d", "SBS60": "#5e622c", "SBS84": "#b66057", "SBS85": "#dca173", "DBS1": "#855524", "DBS2": "#9f7846", "DBS3": "#7951d0", "DBS4": "#73d053", "DBS5": "#b969e9", "DBS6": "#91ba2c", "DBS7": "#3656ca", "DBS8": "#b4b42f", "DBS9": "#5276ec", "DBS10": "#daae36", "DBS11": "#9e40b5", "ID1": "#de3860", "ID2": "#41ac2f", "ID3": "#7951d0", "ID4": "#73d053", "ID5": "#b969e9", "ID6": "#91ba2c", "ID7": "#9e40b5", "ID8": "#43c673", "ID9": "#dd4cb0", "ID10": "#3d9332", "ID11": "#de77dd", "ID12": "#7bad47", "ID13": "#9479e8", "ID14": "#487b21", "ID15": "#a83292", "ID16": "#83c67d", "ID17": "#664db1"}
 
-def main(sample, dp_threshold, target, info_af, log, filter, just_pass, use_likelihoods, percent, title):
+def main(sample, dp_threshold, target, info_af, log, filter, just_pass, use_likelihoods, percent, title, genes, consequences, vep_format, impacts, gene_colors):
 
   logging.info('reading from stdin...')
 
@@ -29,6 +30,20 @@ def main(sample, dp_threshold, target, info_af, log, filter, just_pass, use_like
   ads = []
   ads_nopass = []
   sig_ads = collections.defaultdict(list)
+
+  if genes is not None:
+    genes = set(genes)
+
+  if consequences is not None:
+    consequences = set(consequences)
+
+  if impacts is not None:
+    impacts = set(impacts)
+
+  if vep_format is not None:
+    vep_format = vep_format.split('|')
+
+  vafs = []
 
   if filter is not None:
     if ':' in filter:
@@ -42,6 +57,7 @@ def main(sample, dp_threshold, target, info_af, log, filter, just_pass, use_like
 
   variant_count = 0
   skipped_pass = skipped_dp = skipped_af = allowed = 0
+
   sample_id = vcf_in.samples.index(sample)
   for variant_count, variant in enumerate(vcf_in):
     # GL000220.1      135366  .       T       C       .       LowEVS;LowDepth SOMATIC;QSS=1;TQSS=1;NT=ref;QSS_NT=1;TQSS_NT=1;SGT=TT->TT;DP=2;MQ=60.00;MQ0=0;ReadPosRankSum=0.00;SNVSB=0.00;SomaticEVS=0.71    DP:FDP:SDP:SUBDP:AU:CU:GU:TU    1:0:0:0:0,0:0,0:0,0:1,1 1:0:0:0:0,0:1,1:0,0:0,0
@@ -83,6 +99,19 @@ def main(sample, dp_threshold, target, info_af, log, filter, just_pass, use_like
         else:
           value = 0
     target_ad.append(value) # overall set of afs
+
+    # if this a variant of interest?
+    if genes is not None and len(genes) > 0:
+      # parse vep
+      veps = variant.INFO['CSQ'].split(',')
+      for vep in veps:
+        values = {x[0]: x[1] for x in zip(vep_format, vep.split('|'))}
+        #logging.debug('vep: %s', values)
+        if values['PICK'] == '1' and values['SYMBOL'] in genes and (consequences is None or values['Consequence'] in consequences) and (impacts is None or values['IMPACT'] in impacts):
+          logging.debug('interesting variant %s', variant)
+          vafs.append({'gene': values['SYMBOL'], 'HGVSc': values['HGVSc'], 'HGVSp': values['HGVSp'], 'vaf': value})
+          break
+
     allowed += 1
     if use_likelihoods:
       try:
@@ -107,15 +136,16 @@ def main(sample, dp_threshold, target, info_af, log, filter, just_pass, use_like
   max_ads = max(ads + ads_nopass)
   logging.info('processed %i variants. no pass %i. low af %i. low dp %i. allowed %i AF range %.2f to %.2f', variant_count + 1, skipped_pass, skipped_af, skipped_af, allowed, min_ads, max_ads)
 
+  if just_pass:
+    xmax = max(ads + [0.01])
+  else:
+    xmax = max(ads + ads_nopass + [0.01])
+
   # now plot histogram
   if use_likelihoods:
     sig_names = sorted(sig_ads.keys())
-    if just_pass:
-      xmax = max(ads + [0.01])
-    else:
-      xmax = max(ads + ads_nopass + [0.01])
     if len(sig_ads) == 0: # no variants do a dummy
-      plt.hist([0.0])
+      yh, xh, _ = plt.hist([0.0])
     else:
       if percent:
         plt.ylabel('Proportion of variants')
@@ -149,17 +179,51 @@ def main(sample, dp_threshold, target, info_af, log, filter, just_pass, use_like
         #ax.xaxis.set_ticks(np.arange(0, len(totals), 10))
       else:
         plt.ylabel('Number of variants')
-        plt.hist([sig_ads[n] for n in sig_names], label=sig_names, color=[colors[sig] for sig in sig_names], bins=int(xmax * 100), stacked=True)
-      plt.legend()
+        yh, xh, _ = plt.hist([sig_ads[n] for n in sig_names], label=sig_names, color=[colors[sig] for sig in sig_names], bins=int(xmax * 100), stacked=True)
   else: # just the totals
     plt.ylabel('Number of variants')
     if just_pass and len(ads) > 0:
-      plt.hist(ads, bins=int(max(ads) * 100))
+      yh, xh, _ = plt.hist(ads, bins=int(max(ads) * 100))
     else:
-      plt.hist([ads, ads_nopass], label=('PASS', 'No PASS'), bins=int(max(ads + ads_nopass) * 100), stacked=True)
-      plt.legend()
+      yh, xh, _ = plt.hist([ads, ads_nopass], label=('PASS', 'No PASS'), bins=int(max(ads + ads_nopass) * 100), stacked=True, color=['#82a3db', '#e1974c'])
   if log:
     plt.yscale('log')
+
+  # vafs of interest
+  # vafs.append({'gene': values['SYMBOL'], 'HGVSp': values['HGVSp'], 'vaf': value})
+  # sorted(list_to_be_sorted, key=lambda k: k['name']) 
+  labelled = set()
+  for i, vaf in enumerate(sorted(vafs, key=lambda k: k['vaf'])):
+    logging.debug('adding %s', vaf)
+    if gene_colors is None:
+      color='#800000'
+    else:
+      for gc in gene_colors:
+        g, c = gc.split('=')
+        if g == vaf['gene']:
+          color=c
+          break
+    if vaf['gene'] not in labelled:
+      plt.axvline(vaf['vaf'], 0, 1, color=color, label=vaf['gene'])
+      labelled.add(vaf['gene'])
+    else:
+      plt.axvline(vaf['vaf'], 0, 1, color=color)
+
+    if log:
+      ypos = math.pow(i % 3 + 1, 10) * yh.max() / 1000000 + 2
+    else:
+      ypos = i % 4 / 4 * yh.max()
+
+    logging.debug('ypos %s', ypos)
+    if ':' in vaf['HGVSp']:
+      annot = vaf['HGVSp'].split(':')[1]
+    elif ':' in vaf['HGVSc']:
+      annot = vaf['HGVSc'].split(':')[1]
+    else:
+      annot = ''
+    plt.text(float(vaf['vaf'])-0.01 * xmax, ypos, '{}:{} {}%'.format(vaf['gene'], annot, '{:.0f}'.format(vaf['vaf'] * 100)), rotation=90, verticalalignment='baseline', fontsize='smaller', color='black')
+
+  plt.legend()
   plt.xlabel('Allele Fraction')
   plt.title(title)
   plt.grid(which='both')
@@ -177,6 +241,11 @@ if __name__ == '__main__':
   parser.add_argument('--log', action='store_true', help='log on y scale')
   parser.add_argument('--percent', action='store_true', help='show as percentage')
   parser.add_argument('--signature_likelihoods', action='store_true', help='use signature likelihood annotations')
+  parser.add_argument('--genes', nargs='*', required=False, help='genes to annotate with vaf lines')
+  parser.add_argument('--gene_colors', nargs='*', required=False, help='genes to annotate with vaf lines')
+  parser.add_argument('--consequences', nargs='*', required=False, help='variants with these consequence will be included')
+  parser.add_argument('--impacts', nargs='*', required=False, help='variants with these impacts will be included')
+  parser.add_argument('--vep_format', required=False, help='vep format')
   parser.add_argument('--verbose', action='store_true', help='more logging')
   args = parser.parse_args()
   if args.verbose:
@@ -185,4 +254,4 @@ if __name__ == '__main__':
     logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s', level=logging.INFO)
 
   # sample af vcf
-  main(args.sample, args.dp, args.target, args.info_af, args.log, args.filter, args.just_pass, args.signature_likelihoods, args.percent, args.title)
+  main(args.sample, args.dp, args.target, args.info_af, args.log, args.filter, args.just_pass, args.signature_likelihoods, args.percent, args.title, args.genes, args.consequences, args.vep_format, args.impacts, args.gene_colors)

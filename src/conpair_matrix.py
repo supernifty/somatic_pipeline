@@ -16,15 +16,18 @@ def execute(cmd):
   logging.debug('executing %s: done', cmd)
   return result == 0
 
-def main(tumours, normals, working, output, reference, skip_pileup, skip_comparison):
+def main(tumours, normals, working, output, reference, skip_pileup, skip_comparison, tooldir, fullpath):
 
   if not skip_pileup:
     logging.info('generating pileups...')
     samples = set(tumours + normals)
     for s in samples:
       logging.info('generating pileup for %s...', s)
-      name = s.split('/')[-1].split('.')[0]
-      if not execute("python tools/Conpair/scripts/run_gatk_pileup_for_sample.py --reference {reference} --conpair_dir tools/Conpair --gatk tools/GenomeAnalysisTK-3.8-1-0-gf15c1c3ef/GenomeAnalysisTK.jar -B {bam} -O {working}/{name}.pileup".format(reference=reference, bam=s, working=working, name=name)):
+      if fullpath:
+        name = s.replace('/', '_')
+      else:
+        name = s.split('/')[-1].split('.')[0]
+      if not execute("python {tools}/Conpair/scripts/run_gatk_pileup_for_sample.py --reference {reference} --conpair_dir {tools}/Conpair --gatk {tools}/GenomeAnalysisTK-3.8-1-0-gf15c1c3ef/GenomeAnalysisTK.jar -B {bam} -O {working}/{name}.pileup".format(tools=tooldir, reference=reference, bam=s, working=working, name=name)):
         sys.exit(1)
 
   if not skip_comparison:
@@ -34,9 +37,13 @@ def main(tumours, normals, working, output, reference, skip_pileup, skip_compari
         if t == n:
           continue
         logging.info('comparing %s to %s...', t, n)
-        tname = t.split('/')[-1].split('.')[0]
-        nname = n.split('/')[-1].split('.')[0]
-        if not execute("PYTHONPATH=tools/Conpair/modules CONPAIR_DIR=tools/Conpair python tools/Conpair/scripts/verify_concordance.py -T {working}/{tname}.pileup -N {working}/{nname}.pileup --outfile {working}/{tname}.{nname}.concordance --normal_homozygous_markers_only".format(working=working, nname=nname, tname=tname)):
+        if fullpath:
+          tname = t.replace('/', '_')
+          nname = n.replace('/', '_')
+        else:
+          tname = t.split('/')[-1].split('.')[0]
+          nname = n.split('/')[-1].split('.')[0]
+        if not execute("PYTHONPATH={tools}/Conpair/modules CONPAIR_DIR={tools}/Conpair python {tools}/Conpair/scripts/verify_concordance.py -T {working}/{tname}.pileup -N {working}/{nname}.pileup --outfile {working}/{tname}.{nname}.concordance --normal_homozygous_markers_only".format(tools=tooldir, working=working, nname=nname, tname=tname)):
           sys.exit(1)
 
   logging.info('merging results...')
@@ -46,8 +53,12 @@ def main(tumours, normals, working, output, reference, skip_pileup, skip_compari
       for n in normals:
         if t == n:
           continue
-        tname = t.split('/')[-1].split('.')[0]
-        nname = n.split('/')[-1].split('.')[0]
+        if fullpath:
+          tname = t.replace('/', '_')
+          nname = n.replace('/', '_')
+        else:
+          tname = t.split('/')[-1].split('.')[0]
+          nname = n.split('/')[-1].split('.')[0]
         for line in open('{working}/{tname}.{nname}.concordance'.format(working=working, tname=tname, nname=nname)).readlines():
           if line.startswith('Concordance:'):
             fh.write('{}\t{}\t{}\n'.format(tname, nname, line.strip('\n').split(' ')[1].replace('%', '')))
@@ -68,10 +79,12 @@ if __name__ == '__main__':
   parser.add_argument('--verbose', action='store_true', help='more logging')
   parser.add_argument('--skip_pileup', action='store_true', help='pileup has already been run')
   parser.add_argument('--skip_comparison', action='store_true', help='comparison has already been run')
+  parser.add_argument('--fullpath', action='store_true', help='full path in output')
+  parser.add_argument('--tooldir', required=False, default='tools', help='tools directory')
   args = parser.parse_args()
   if args.verbose:
     logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s', level=logging.DEBUG)
   else:
     logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s', level=logging.INFO)
 
-  main(args.tumours, args.germlines, args.working, args.output, args.reference, args.skip_pileup, args.skip_comparison)
+  main(args.tumours, args.germlines, args.working, args.output, args.reference, args.skip_pileup, args.skip_comparison, args.tooldir, args.fullpath)

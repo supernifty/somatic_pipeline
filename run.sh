@@ -3,8 +3,10 @@
 set -o errexit
 
 # run on the cluster
-MAXJOBS=128
+MAXJOBS=32
 PREFIX="tl-$(basename `pwd`)"
+
+export R_LIBS_USER="$(pwd)/tools/R_libs"
 
 echo "cleaning up..."
 
