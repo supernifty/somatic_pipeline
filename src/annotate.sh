@@ -15,6 +15,7 @@ INPUT=$1
 OUTPUT=$2
 REFERENCE=$3
 THREADS=$4
+ROOT=$5
 
 THREADS=1 # ignore threads parameter due to vep errors
 
@@ -24,9 +25,9 @@ THREADS=1 # ignore threads parameter due to vep errors
 #export PERL5LIB=$PERL5LIB:/data/projects/punim0567/programs/vep/ensembl-vep/:tools/vep
 
 # 102
-VEPPATH=./tools/vep/ensembl-vep/
-CACHE=./tools/vep/data/ 
-export PERL5LIB=$PERL5LIB:$(pwd)/tools/vep/ensembl-vep/:$(pwd)/tools/vep
+VEPPATH=$5/tools/vep/ensembl-vep/
+CACHE=$5/tools/vep/data/ 
+export PERL5LIB=$PERL5LIB:$5/tools/vep/ensembl-vep/:$5/tools/vep
 
 $VEPPATH/vep \
     --cache \

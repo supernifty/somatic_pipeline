@@ -42,7 +42,7 @@ def main(target, bedfiles, max_cov):
       cumulative -= float(fields[4])
       ys.append(cumulative)
 
-    ax.plot(xs, ys, color=colors[i], marker=markers[i % len(markers)], label=bedfile.split('.')[0], markevery=0.1)
+    ax.plot(xs, ys, color=colors[i], marker=markers[i % len(markers)], label=bedfile.split('/')[-1].split('.')[0], markevery=0.1)
 
   plt.legend()
   plt.savefig(target)

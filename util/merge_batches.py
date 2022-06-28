@@ -23,6 +23,8 @@ V31_ID=False
 
 TMB_CLEANED=False
 
+KEEP_SIGS=False
+
 GENES_OF_INTEREST = set([
   'MUTYH',
   'NRAS',
@@ -79,8 +81,9 @@ def add_signature(fn, samples, header, source, prefix):
       row['R{}'.format(idx + 1)] = '{} {}%'.format(x[1], int(x[0] * 100)) # as %
 
     # also remove original signatures
-    for key in signature_names:
-      del row[key]
+    if not KEEP_SIGS:
+      for key in signature_names:
+        del row[key]
 
     # add prefix to all row names
     for key in row.copy():
@@ -225,6 +228,40 @@ def main(directories, phenotype, require):
     except:
       logging.error('failed to add msiseq')
 
+    # purity
+    fn = os.path.join(directory, 'out', 'aggregate', 'purity.tsv')
+    try:
+      for row in csv.DictReader(open(fn, 'r'), delimiter='\t'):
+        sample = row['Sample'].split('/')[-1].split('.')[0]
+        del row['Sample'] # include everything but
+        samples['{}/{}'.format(sample, source)]['Purity'] = row['Best']
+        header.add('Purity')
+    except:
+      logging.error('failed to add purity')
+
+    # msmutect
+    fn = os.path.join(directory, 'out', 'aggregate', 'msmutect.combined.tsv')
+    try:
+      for row in csv.DictReader(open(fn, 'r'), delimiter='\t'):
+        sample = row['Filename'].split('/')[-1].split('.')[0]
+        del row['Filename'] # include everything but
+        #A1^IA2^IB1^IB2^IC1^IC2^IReads^IObjective
+        samples['{}/{}'.format(sample, source)]['msmutect'] = row['Count']
+        header.add('msmutect')
+    except:
+      logging.error('failed to add hlatype')
+
+    # optitype
+    fn = os.path.join(directory, 'out', 'aggregate', 'optitype.tsv')
+    try:
+      for row in csv.DictReader(open(fn, 'r'), delimiter='\t'):
+        sample = row['Sample'].split('/')[-1].split('.')[0]
+        del row['Sample'] # include everything but
+        #A1^IA2^IB1^IB2^IC1^IC2^IReads^IObjective
+        samples['{}/{}'.format(sample, source)]['HLAType'] = ' '.join([row[x] for x in ('A1', 'A2', 'B1', 'B2', 'C1', 'C2')])
+        header.add('HLAType')
+    except:
+      logging.error('failed to add hlatype')
 
     # ontarget coverage
     try:
@@ -239,7 +276,7 @@ def main(directories, phenotype, require):
         header.add('MeanOnTargetCoverage')
     except:
       logging.error('failed to add ontarget')
-      raise
+      #raise
 
     # loh
     try:
@@ -252,6 +289,21 @@ def main(directories, phenotype, require):
           header.add('LOH')
     except:
       logging.error('failed to add loh')
+
+    # somalier
+    #sample_id      predicted_ancestry      given_ancestry  EAS_prob        AFR_prob        AMR_prob        SAS_prob        EUR_prob        PC1     PC2     PC3     PC4     PC5
+    #HG02855 AFR     AFR     0.0000  1.0000  0.0000  0.0000  0.0000  11.7211 -2.1820 0.7847  -1.7377 1.3824
+    try:
+      fn = os.path.join(directory, 'out', 'aggregate', 'somalier-ancestry.somalier-ancestry.tsv')
+      logging.info('processing %s', fn)
+      for row in csv.DictReader(open(fn, 'r'), delimiter='\t'): # sample gene accept
+        #logging.debug('rows are %s', row)
+        prediction = row['predicted_ancestry']
+        samples['{}/{}'.format(row['#sample_id'], source)]['Ethnicity'] = '{} ({})'.format(prediction, row['{}_prob'.format(prediction)])
+        header.add('Ethnicity')
+    except:
+      logging.error('failed to add ethnicity')
+      raise
 
   if phenotype is not None:
     header.add('Phenotype')

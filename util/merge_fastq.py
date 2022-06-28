@@ -22,7 +22,7 @@ import collections
 import logging
 import sys
 
-def merge(files, outdir, sample_components):
+def merge(files, outdir, sample_components, skip_components):
   logging.info('starting...')
   samples = collections.defaultdict(list)
   logging.info('considering input files...')
@@ -30,7 +30,7 @@ def merge(files, outdir, sample_components):
     # extract sample and read
     fn = f.split('/')[-1].split('.')[0]
     components = fn.split('_')
-    sample = '_'.join(components[0:sample_components])
+    sample = '_'.join(components[skip_components:sample_components])
     readnum = components[-1]
     samples[(sample, readnum)].append(f)
     logging.debug('added %s to %s...', f, (sample, readnum))
@@ -57,6 +57,7 @@ if __name__ == '__main__':
   parser = argparse.ArgumentParser(description='Merge multiple fastq lanes')
   parser.add_argument('--files', required=True, nargs='+', help='fastq input files')
   parser.add_argument('--outdir', required=True, help='fastq target')
+  parser.add_argument('--skip_components', required=False, type=int, default=0, help='skip initial components')
   parser.add_argument('--sample_components', required=False, type=int, default=1, help='number of components in sample')
   parser.add_argument('--verbose', action='store_true', help='more logging')
   args = parser.parse_args()
@@ -65,4 +66,4 @@ if __name__ == '__main__':
   else:
     logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s', level=logging.INFO)
 
-  merge(args.files, args.outdir, args.sample_components)
+  merge(args.files, args.outdir, args.sample_components, args.skip_components)

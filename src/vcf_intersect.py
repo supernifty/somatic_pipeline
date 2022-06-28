@@ -43,11 +43,13 @@ def main(vcfs, rejected, pass_only, pass_one, allowed_filters):
       already_passed[variant.CHROM] = set()
 
     if pass_one and is_pass(variant, allowed_filters):
+      logging.debug('already passed %s:%s', variant.CHROM, variant.POS)
       already_passed[variant.CHROM].add(variant.POS) # wait for others
+      base[variant.CHROM].add(variant.POS) # wait and see the others
     else:
       base[variant.CHROM].add(variant.POS) # wait and see the others
 
-  logging.info('done reading %s: %i variants processed...', vcfs[0], variant_base_count + 1)
+  logging.info('done reading %s: %i variants processed, %i already passed...', vcfs[0], variant_base_count + 1, sum([len(already_passed[c]) for c in already_passed]))
 
   logging.info('reading %s...', vcfs[1])
   vcf_cand = cyvcf2.VCF(vcfs[1])  
@@ -71,12 +73,15 @@ def main(vcfs, rejected, pass_only, pass_one, allowed_filters):
     if variant.CHROM in base and variant.POS in base[variant.CHROM]: # seen previously
       if pass_one:
         if is_pass(variant, allowed_filters): # 2nd is a pass
+          logging.debug('pass in second: %s:%s', variant.CHROM, variant.POS)
           sys.stdout.write(str(variant))
           included += 1
-        elif variant.CHROM in already_passed and variant.POS in already_passed[variant.CHROM]:
+        elif variant.CHROM in already_passed and variant.POS in already_passed[variant.CHROM]: # wasn't a pass but seen in first
+          logging.debug('pass in first: %s:%s', variant.CHROM, variant.POS)
           sys.stdout.write(str(variant))
           included += 1
         else:
+          logging.debug('no pass in second, no pass in first: %s:%s', variant.CHROM, variant.POS)
           reject += 1
           if rejected is not None:
             rejected_fh.write(str(variant))
@@ -84,6 +89,7 @@ def main(vcfs, rejected, pass_only, pass_one, allowed_filters):
         sys.stdout.write(str(variant))
         included += 1
     else:
+      logging.debug('variant %s:%s not seen in first', variant.CHROM, variant.POS)
       reject += 1
       if rejected is not None:
         rejected_fh.write(str(variant))

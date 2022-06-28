@@ -5,6 +5,7 @@ genome_dict: 'reference/genome.dict'
 
 regions: 'reference/regions.bed'
 #regions: 'reference/regions.wgs.bed'
+regions_msmutect: 'reference/msmutect.wes.bed'
 
 refflat: 'reference/refFlat.txt'
 refseq_bed: 'reference/papillon.refseq.bed'
@@ -13,6 +14,7 @@ cosmic_counts: 'reference/cosmic.vcf.gz'
 revel: 'reference/revel_grch38_all_chromosomes.csv.gz'
 clinvar: 'reference/clinvar_20191219.vcf.gz'
 cadd: 'reference/cadd_1.6.tsv.gz'
+cadd_indels: 'reference/cadd_indels_1.6.tsv.gz'
 
 vt_decompose_params: '-s'
 #vt_decompose_params: '' # no smart mode if -s fails (doesn't work yet)
@@ -23,26 +25,32 @@ strelka_params: '--exome'
 
 module_bedtools: 'module load BEDTools/2.26.0-intel-2016.u3'
 module_bwa: 'module load BWA/0.7.12-intel-2016.u3'
+module_cplex: 'module load CPLEX'
+module_gcc: 'module load GCC'
 module_htslib: 'module load HTSlib/1.8-intel-2017.u2'
 module_java: 'module load Java/1.8.0_152'
 module_pandoc: 'module load pandoc/2.0.3'
 module_python2: 'module load Python/2.7.13-intel-2017.u2'
 module_R: 'module load R/3.4.4-GCC-4.9.2'
-module_samtools: 'module load SAMtools/1.8-intel-2016.u3-HTSlib-1.8'
+#module_samtools: 'module load SAMtools/1.8-intel-2016.u3-HTSlib-1.8'
+module_samtools: 'module load SAMtools/1.9-spartan_intel-2017.u2-HTSlib-1.9'
+module_singularity: 'module load Singularity/3.5.3'
 module_network: 'module load web_proxy'
 
 # tool versions
 cnv_version: 0.1
 csvtools_version: 'master'
 kataegis_version: 0.1
-loh_version: 0.5
+loh_version: 'master'
 mantis_version: '1.0.4'
 msisensor_version: 0.5
 #papillon_version: 0.1
 papillon_version: 'master'
 plotme_version: 0.2
+purity_version: 'main'
 #signature_version: 0.6
-signature_version: 'master'
+signature_version: 'master20220323'
+somalier_version: '0.2.13'
 umi_version: 'master'
 vcfanno_version: 'v0.3.2'
 vt_version: '0.577'
@@ -73,16 +81,31 @@ genes_of_interest:
   - MUTYH
   - NRAS
   - MAP3K21
+
+  - ALK #chr2:29415639-30144477
+  - BIRC6 #chr2:32582095-32843965
+  - SOS1 #chr2:39208689-39347604
+  - ZFP36L2 # chr2:43449540-43453745
   - EPCAM
   - MSH2
   - MSH6
+  - PCBP1 # chr2:70314584-70316334
+  - TET3 # chr2:74213530-74335302
   - ACVR2A
   - CASP8
+  - VHL # chr3:10183318-10195354
+  - FBLN2 # chr3:13590624-13679922
+  - XPC # chr3:14186647-14220172
   - TGFBR2
   - MLH1
+  - SCN5A # chr3:38589552-38691164
   - CTNNB1
+  - SETD2 # chr3:47057897-47205467
+  - BAP1 # chr3:52435019-52444121
+  - PBRM1 # chr3:52579367-52719866
   - MBD4
   - PIK3CA
+
   - FBXW7
   - MSH3
   - APC
@@ -108,42 +131,41 @@ genes_of_interest:
   - SMAD2
   - SMAD4
   - POLD1
+  - MCM8 # 20:5931297-5975852 
 
 # loh and mini-bams configuration genes of interest
-# these should be in order 
-# TODO calculate directly from transcripts file - for now run: python biotools/gene_to_loci.py --genes MSH2 EPCAM --refseq ~/crc/data/public_datasets/refseq.ucsc.hg19.180829.gz
-regions_of_interest:
+regions_of_interest_minibam:
   - 1:45794914-45806142 # MUTYH
-  - 1:115247084-115259515 # PIK3CA
-  - 1:233463513-233520894 # FBXW7
-  - 2:47596286-47614167 # EPCAM
-  - 2:47630206-47710367 # MSH3
-  - 2:48010220-48034092 # MSH6
-  - 2:148602085-148688396 # APC
-  - 2:202098165-202152434 # PMS2
-  - 3:30647993-30735633 # TGFBR2
-  - 3:37034000-37093000 # MLH1
-  - 3:41240941-41281939 # CTNNB1
+  - 1:115247084-115259515 # NRAS
+  - 1:233463513-233520894 # MAP3K21
+
+  - 2:1-93152000 # 2:p-arm
+  - 2:148602085-148688396 # ACVR2A
+  - 2:202098165-202152434 # CASP8
+
+  - 3:1-91422000 # 3:p-arm
   - 3:129149787-129159022 # MBD4
   - 3:178866310-178957881 # PIK3CA
+
   - 4:153242409-153456185 # FBXW7
   - 5:79950466-80172634 # MSH3
   - 5:112041202-112183936 # APC
-  - 7:6010555-6048737
-  - 7:140432363-140624728
-  - 8:30890777-31033387
-  - 10:54073942-54077417
-  - 10:89623194-89731687
-  - 11:532241-535567
-  - 11:2150341-2170833
-  - 11:108093558-108239826
-  - 12:25355723-25405865
-  - 12:40787195-40964557
-  - 12:102789644-102874423
+
+  - 7:1-60449000 # 7:p-arm
+  - 7:140432363-140624728 # BRAF
+  - 8:30890777-31033387 # WRN
+  - 10:54073942-54077417 # DKK1
+  - 10:89623194-89731687 # PTEN
+  - 11:532241-535567 # HRAS
+  - 11:2150341-2170833 # IGF2
+  - 11:108093558-108239826 # ATM
+  - 12:25355723-25405865 # KRAS
+  - 12:40787195-40964557 # MUC19
+  - 12:102789644-102874423 # IGF1
   - 12:133200348-133264110 # POLE
-  - 13:32889616-32973809
-  - 15:31196076-31235310
-  - 16:2089816-2097870
+  - 13:32889616-32973809 # BRCA2
+  - 15:31196076-31235310 # FAN1
+  - 16:2089816-2097870 # NTHL1
   - 17:7569720-7592868 # TP53
   - 17:41196311-41277500
   - 17:56429861-56494943 # RNF43
@@ -151,7 +173,66 @@ regions_of_interest:
   - 18:45359465-45456970 # SMAD2
   - 18:48556582-48611411 # SMAD4
   - 19:50887580-50921275 # POLD1
+  - 20:5931297-5975852 # MCM8
+ 
+# these should be in order 
+# TODO calculate directly from transcripts file - for now run: python biotools/gene_to_loci.py --genes MSH2 EPCAM --refseq ~/crc/data/public_datasets/refseq.ucsc.hg19.180829.gz
+regions_of_interest:
+  - 1:45794914-45806142 # MUTYH
+  - 1:115247084-115259515 # NRAS
+  - 1:233463513-233520894 # MAP3K21
 
+  - 2:29415639-30144477 # ALK
+  - 2:32582095-32843965 # BIRC6
+  - 2:39208689-39347604 # SOS1
+  - 2:43449540-43453745 # ZFP36L2
+  - 2:47596286-47614167 # EPCAM
+  - 2:47630206-47710367 # MSH2
+  - 2:48010220-48034092 # MSH6
+  - 2:70314584-70316334 # PCBP1
+  - 2:74213530-74335302 # TET3
+  - 2:148602085-148688396 # ACVR2A
+  - 2:202098165-202152434 # CASP8
+
+  - 3:10183318-10195354 # VHL
+  - 3:13590624-13679922 # FBLN2
+  - 3:14186647-14220172 # XPC
+  - 3:30647993-30735633 # TGFBR2
+  - 3:37034000-37093000 # MLH1
+  - 3:38589552-38691164 # SCN5A
+  - 3:41240941-41281939 # CTNNB1
+  - 3:47057897-47205467 # SETD2
+  - 3:52435019-52444121 # BAP1
+  - 3:52579367-52719866 # PBRM1
+  - 3:129149787-129159022 # MBD4
+  - 3:178866310-178957881 # PIK3CA
+
+  - 4:153242409-153456185 # FBXW7
+  - 5:79950466-80172634 # MSH3
+  - 5:112041202-112183936 # APC
+  - 7:6010555-6048737 # PMS2
+  - 7:140432363-140624728 # BRAF
+  - 8:30890777-31033387 # WRN
+  - 10:54073942-54077417 # DKK1
+  - 10:89623194-89731687 # PTEN
+  - 11:532241-535567 # HRAS
+  - 11:2150341-2170833 # IGF2
+  - 11:108093558-108239826 # ATM
+  - 12:25355723-25405865 # KRAS
+  - 12:40787195-40964557 # MUC19
+  - 12:102789644-102874423 # IGF1
+  - 12:133200348-133264110 # POLE
+  - 13:32889616-32973809 # BRCA2
+  - 15:31196076-31235310 # FAN1
+  - 16:2089816-2097870 # NTHL1
+  - 17:7569720-7592868 # TP53
+  - 17:41196311-41277500
+  - 17:56429861-56494943 # RNF43
+  - 17:63524683-63557766 # AXIN2
+  - 18:45359465-45456970 # SMAD2
+  - 18:48556582-48611411 # SMAD4
+  - 19:50887580-50921275 # POLD1
+  - 20:5931297-5975852 # MCM8
 
 loh_region_padding:
   - 50000
@@ -192,8 +273,36 @@ loh_region_padding:
   - 50000
   - 50000
   - 50000
+  - 50000
+  - 50000
+  - 50000
+  - 50000
+  - 50000
+  - 50000
+  - 50000
+  - 50000
+  - 50000
+  - 50000
+  - 50000
+  - 50000
+  - 50000
+  - 50000
 
 cnv_region_padding:
+  - 500000
+  - 500000
+  - 500000
+  - 500000
+  - 500000
+  - 500000
+  - 500000
+  - 500000
+  - 500000
+  - 500000
+  - 500000
+  - 500000
+  - 500000
+  - 500000
   - 500000
   - 500000
   - 500000

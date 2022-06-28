@@ -30,6 +30,7 @@ def main(lohs, transcripts, min_accept):
     sample = loh.split('/')[-1].split('.')[0]
     for line in open(loh, 'r'):
       #12      6709614 6711147 50.0    1       0       1       1533
+      #chr	start finish accept_pct accepts supports neutrals length
       fields = line.strip('\n').split('\t')
       chrom, start, finish, accept = fields[0], int(fields[1]), int(fields[2]), int(fields[4])
       if accept < min_accept:

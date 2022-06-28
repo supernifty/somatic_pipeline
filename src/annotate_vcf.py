@@ -17,6 +17,12 @@ import cyvcf2
 CANONICAL='CANONICAL'
 CANONICAL_VALUE='YES'
 
+def make_key(variant, alt):
+  if variant.REF in 'ACGT' and alt in 'ACGT': # shorter key where possible
+    return int(variant.POS) * (1 + 'ACGT'.index(alt))
+  else:
+    return (int(variant.POS), variant.REF, variant.ALT[0])
+
 def annotate_vcf(annotations, fields, vcf_in, vcf_out, new_names):
     for field in fields:
       vcf_in.add_info_to_header({'ID': new_names.get(field, field), 'Description': 'Annotated field {}'.format(new_names.get(field, field)), 'Type':'Character', 'Number': '1'})
@@ -28,7 +34,7 @@ def annotate_vcf(annotations, fields, vcf_in, vcf_out, new_names):
     for count, variant in enumerate(vcf_in):
       chr = variant.CHROM.replace('chr', '')
       if chr in annotations:
-        key = '{}/{}/{}'.format(variant.POS, variant.REF, variant.ALT[0])
+        key = make_key(variant, variant.ALT[0]) #'{}/{}/{}'.format(variant.POS, variant.REF, variant.ALT[0])
         if count < 100:
           logging.debug('looking for %s', key)
         if key in annotations[chr]:
@@ -44,7 +50,7 @@ def annotate_vcf(annotations, fields, vcf_in, vcf_out, new_names):
           seen.add(chr)
           logging.warn('chromosome %s not seen in annotations', chr)
       vcf_out.write(str(variant))
-      if (count + 1) % 10000 == 0:
+      if (count + 1) % 100000 == 0:
         logging.info('reading %s: %i lines processed %i annotated', chr, count + 1, annotated)
     
     logging.info('done. annotated %i of %i variants', annotated, count)
@@ -66,22 +72,22 @@ def main(vcf_in, vcfs, fields, definitions, suffix, rename, no_overwrite):
       annotations[chr] = {}
       logging.info('adding %s to annotations', chr)
     # normal fields
-    try:
-      for alt_idx, alt in enumerate(variant.ALT):
-        key = '{}/{}/{}'.format(variant.POS, variant.REF, alt)
-        annotations[chr][key] = []
-        for name in fields:
-          if '|' in name:
-            continue
+    for alt_idx, alt in enumerate(variant.ALT):
+      key = make_key(variant, alt) #'{}/{}/{}'.format(variant.POS, variant.REF, alt)
+      annotations[chr][key] = []
+      for name in fields:
+        if '|' in name:
+          continue
+        try:
           if isinstance(variant.INFO[name], (list, tuple)):
             annotations[chr][key].append(variant.INFO[name][alt_idx])
           else:
             annotations[chr][key].append(variant.INFO[name])
-        if count < 100:
-          logging.debug('line %i %s:%s: %s', count, chr, key, annotations[chr][key])
-    except KeyError:
-      logging.debug('line %i %s:%i: normal fields not found', count, chr, variant.POS)
-      del annotations[chr][key]
+        except KeyError:
+          logging.debug('line %i %s:%i: name %s not found', count, chr, variant.POS, name) # this is no big deal
+          annotations[chr][key].append('')
+      if count < 100:
+        logging.debug('line %i %s:%s: %s', count, chr, key, annotations[chr][key])
 
     # skip for now
     #key = '{}/{}/{}'.format(variant.POS, variant.REF, variant.ALT[0])
@@ -109,7 +115,7 @@ def main(vcf_in, vcfs, fields, definitions, suffix, rename, no_overwrite):
     #except KeyError:
     #  logging.debug('line %i %s:%i: extended fields not found', count, chr, variant.POS)
 
-    if (count + 1) % 100000 == 0:
+    if (count + 1) % 10000000 == 0:
       logging.info('%i lines...', count + 1)
   logging.debug('reading %s: %i lines processed', chr, count + 1)
 

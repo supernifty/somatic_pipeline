@@ -3,3 +3,4 @@ multiqc
 scipy
 cyvcf2
 pysam
+fastqsplitter

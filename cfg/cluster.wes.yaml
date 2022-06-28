@@ -4,7 +4,7 @@ __default__:
   n: 1
   nodes: 1
   partition: physical,snowy
-  time: '00:15:00'
+  time: '00:30:00'
 align:
   memory: 12288
   n: 4
@@ -18,9 +18,9 @@ annotate_af_somatic:
   n: 2
   time: '16:00:00'
 annotate_cadd:
-  memory: 24576
+  memory: 81920
   n: 1
-  time: '4:00:00'
+  time: '16:00:00'
 annotate_clinvar:
   memory: 24576
   n: 1
@@ -81,6 +81,10 @@ bias_filter_strelka_indels:
   memory: 4096
   n: 1
   time: '6:00:00'
+cadd_prepare:
+  memory: 4096
+  n: 1
+  time: '6:00:00'
 cnv_caller:
   memory: 8192
   n: 1
@@ -89,6 +93,14 @@ cnvkit:
   memory: 8192
   n: 1
   time: '24:00:00'
+
+combine_msmutect_somatic:
+  time: '2:00:00'
+
+combine_strelka_tsv:
+  memory: 4096
+  n: 1
+  time: '2:00:00'
 copy_number_varscan:
   memory: 8192
   n: 2
@@ -108,15 +120,15 @@ fastqc:
 filter_capture:
   memory: 1024
   n: 1
-  time: 0:30:00
+  time: '0:30:00'
 filter_context_artefact:
   memory: 4096
   n: 1
-  time: 0:30:00
+  time: '0:30:00'
 filter_germline:
   memory: 4096
   n: 1
-  time: 8:00:00
+  time: '16:00:00'
 gatk_duplicates:
   memory: 32768
   n: 4
@@ -154,9 +166,13 @@ kataegis:
   n: 1
   time: '1:00:00'
 loh:
-  memory: 2048
+  memory: 8192
   n: 1
-  time: '1:00:00'
+  time: '2:00:00'
+loh_pass:
+  memory: 8192
+  n: 1
+  time: '2:00:00'
 make_intervals:
   memory: 8192
   n: 1
@@ -193,6 +209,10 @@ msiseq:
   memory: 16384
   n: 1
   time: '4:00:00'
+msmutect_somatic:
+  memory: 8192
+  n: 4
+  time: '8:00:00'
 multiqc:
   memory: 4096
   n: 1
@@ -217,7 +237,7 @@ mutational_signature_filtered_v3:
   memory: 4096
   n: 1
   time: '0:30:00'
-mutational_signature_filtered_v3_id:
+mutational_signature_filtered_v3_2_id:
   memory: 4096
   n: 1
   time: '0:30:00'
@@ -245,38 +265,50 @@ mutational_signature_v3:
   memory: 4096
   n: 1
   time: '0:30:00'
-mutational_signature_v3_1:
+mutational_signature_v3_2:
   memory: 4096
   n: 1
   time: '0:30:00'
-mutational_signature_filtered_v3_sbs_strand:
+mutational_signature_filtered_v3_2_sbs_strand:
   memory: 4096
   n: 4
   time: '1:00:00'
-mutational_signature_filtered_v3_sbs_strelka_strand:
+mutational_signature_filtered_v3_2_sbs_strelka_strand:
   memory: 4096
   n: 4
   time: '1:00:00'
 mutect2_filter:
   memory: 16384
   n: 2
-  time: '4:00:00'
+  time: '12:00:00'
 mutect2_pon:
   memory: 16384
   n: 2
   time: '1:00:00'
 mutect2_sample_pon:
+  memory: 8192
+  n: 2
+  time: '2:00:00'
+mutect2_sample_pon_chr:
   memory: 16384
-  n: 4
-  time: '12:00:00'
+  n: 2
+  time: '32:00:00'
 mutect2_somatic:
   memory: 8192
   n: 2
   time: '2:00:00'
 mutect2_somatic_chr:
   memory: 16384
-  n: 4
+  n: 2
   time: '32:00:00'
+mutect2_tsv:
+  memory: 4096
+  n: 1
+  time: '1:00:00'
+optitype:
+  memory: 131072
+  n: 1
+  time: '4:00:00'
 pass_one_somatic_callers:
   memory: 4096
   n: 2
@@ -304,7 +336,7 @@ qc_conpair:
 qc_conpair_matrix:
   memory: 2048
   n: 1
-  time: '6:00:00'
+  time: '12:00:00'
 qc_depth_of_coverage:
   memory: 8192
   n: 1
@@ -369,6 +401,14 @@ report_md:
   memory: 4096
   n: 1
   time: '4:00:00'
+somalier:
+  memory: 4096
+  n: 1
+  time: '2:00:00'
+somalier_extract:
+  memory: 4096
+  n: 1
+  time: '2:00:00'
 sort:
   memory: 16384
   n: 4
@@ -381,6 +421,10 @@ strelka_somatic:
   memory: 4096
   n: 4
   time: '6:00:00'
+strelka_tsv:
+  memory: 4096
+  n: 1
+  time: '1:00:00'
 trim:
   memory: 16384
   n: 4

@@ -39,7 +39,7 @@ def bed_to_tree(bed):
     s = int(start)
     f = int(finish)
     # does it overlap with itself?
-    overlap = tree[chrom].search(s, f)
+    overlap = tree[chrom].overlap(s, f)
     if len(overlap) == 0:
       size += f - s
       add_intersect(tree, chrom, s, f) 
@@ -95,8 +95,8 @@ def msiseq(vcfs, repeats, capture, threshold, capture_size, is_maf):
         else:
           chrom = v.CHROM
  
-        if capture_tree is None or chrom in capture_tree and len(capture_tree[chrom].search(v.POS)) > 0:
-          if chrom in repeats_tree and len(repeats_tree[chrom].search(v.POS)) > 0:
+        if capture_tree is None or chrom in capture_tree and len(capture_tree[chrom].overlap(v.POS-1, v.POS)) > 0:
+          if chrom in repeats_tree and len(repeats_tree[chrom].overlap(v.POS, v.POS+1)) > 0: # include left-aligned deletion
             # it's a simple repeat
             count += 1
           else:

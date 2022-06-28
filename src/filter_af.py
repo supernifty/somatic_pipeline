@@ -11,7 +11,7 @@ import numpy
 
 import cyvcf2
 
-def main(sample, af_threshold, dp_threshold, info_af, pass_only, dp_field, min_sample_ad):
+def main(sample, af_threshold, dp_threshold, info_af, pass_only, dp_field, min_sample_ad, max_af, max_dp):
 
   logging.info('reading from stdin...')
 
@@ -37,12 +37,12 @@ def main(sample, af_threshold, dp_threshold, info_af, pass_only, dp_field, min_s
 
     if dp_threshold > 0:
       try:
-        if variant.INFO[dp_field] < dp_threshold: # somatic + germline
+        if variant.INFO[dp_field] < dp_threshold or variant.INFO[dp_field] > max_dp: # somatic + germline
           logging.debug('variant at %i skipped with info depth %i', variant.POS, variant.INFO[dp_field])
           skipped_dp += 1
           continue
       except:
-        if variant.format(dp_field)[sample_id][0] < dp_threshold: # somatic
+        if variant.format(dp_field)[sample_id][0] < dp_threshold or variant.format(dp_field)[sample_id][0] > max_dp: # somatic
           logging.debug('variant at %i skipped with sample depth %i', variant.POS, variant.format(dp_field)[sample_id][0])
           skipped_dp += 1
           continue
@@ -64,7 +64,7 @@ def main(sample, af_threshold, dp_threshold, info_af, pass_only, dp_field, min_s
         logging.debug('variant at %i has no sample AF', variant.POS)
         continue
 
-    if af < af_threshold:
+    if af_threshold is not None and (af < af_threshold or af > max_af):
       skipped_af += 1
       continue
 
@@ -91,8 +91,10 @@ def main(sample, af_threshold, dp_threshold, info_af, pass_only, dp_field, min_s
 if __name__ == '__main__':
   parser = argparse.ArgumentParser(description='Filter VCF')
   parser.add_argument('--sample', required=True,  help='sample name for af filter')
-  parser.add_argument('--af', type=float, required=True,  help='minimum af')
+  parser.add_argument('--af', type=float, required=False,  help='minimum af')
+  parser.add_argument('--max_af', type=float, required=False, default=1000,  help='maximum af')
   parser.add_argument('--dp', type=int, required=True,  help='minimum dp')
+  parser.add_argument('--max_dp', type=float, required=False, default=1e9,  help='maximum dp')
   parser.add_argument('--dp_field', required=False, default='DP',  help='name of DP field')
   parser.add_argument('--info_af', action='store_true', help='use af from info')
   parser.add_argument('--pass_only', action='store_true', help='reject non-pass')
@@ -105,4 +107,4 @@ if __name__ == '__main__':
     logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s', level=logging.INFO)
 
   # sample af vcf
-  main(args.sample, args.af, args.dp, args.info_af, args.pass_only, args.dp_field, args.min_sample_ad)
+  main(args.sample, args.af, args.dp, args.info_af, args.pass_only, args.dp_field, args.min_sample_ad, args.max_af, args.max_dp)

@@ -11,7 +11,7 @@ out = csv.DictWriter(sys.stdout, delimiter=delimiter, fieldnames=fh.fieldnames +
 out.writeheader()
 
 for idx, row in enumerate(fh):
-  if ',' not in row['AD']:
+  if 'AD' not in row or ',' not in row['AD']:
     row['VAF'] = 0
   else:
   #sys.stderr.write('processing {}\n'.format(row))
